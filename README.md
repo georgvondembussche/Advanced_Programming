@@ -1,6 +1,6 @@
 # Advanced_Programming
 
-# Gym Progress Tracker (NiceGUI)
+# Gym Progress Tracker 
 
 A browser-based gym tracking app built with **Python + NiceGUI**.  
 Users can log workouts (sets, reps and weight), track progress over time and visualize which muscle groups they trained in the current week using a **muscle heatmap**.
@@ -21,7 +21,7 @@ Build a simple but powerful web app that enables users to:
 
 ---
 
-## Key Features (MVP)
+## Key Features (Minimum Viable Product)
 - **User accounts** (register/login)
 - **Workout logging**: date, exercises, sets (weight, reps)
 - **Exercise library**: create/edit exercises
@@ -60,18 +60,10 @@ The app follows a 3-layer architecture:
 
 1. **Presentation Layer (Client View)**
    - NiceGUI components: pages, forms, tables, dialogs, charts
-   - no business logic stored in the browser
 
 2. **Application Logic (Server-side Frontend)**
-   - OOP classes (services) encapsulate rules and calculations  
-   - examples:
-     - `WorkoutService` (create sessions, add sets)
-     - `ProgressService` (volume, PRs, e1RM)
-     - `MuscleMapService` (weekly muscle intensity scoring)
 
 3. **Persistence Layer**
-   - SQLite database
-   - ORM models (no handwritten SQL)
 
 ---
 
@@ -82,7 +74,6 @@ Entities (tables):
 - **Exercise**
 - **SetEntry** (session_id, exercise_id, reps, weight)
 - **MuscleGroup**
-
 
 ---
 

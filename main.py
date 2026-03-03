@@ -11,6 +11,12 @@ from services.auth_service import AuthService
 from services.workout_service import WorkoutService
 from services.muscle_map_service import MuscleMapService
 
+def page_container(title: str):
+    ui.label(title).classes("text-3xl font-bold mb-4")
+    return ui.column().classes("w-full items-center")
+
+def card(width="max-w-2xl"):
+    return ui.card().classes(f"w-full {width} p-6")
 
 # -----------------------------
 # Bootstrap
@@ -92,7 +98,7 @@ def dashboard_page():
 
     ui.label("Dashboard").classes("text-2xl font-bold")
 
-    with ui.row().classes("items-center gap-2"):
+    with ui.row().classes("items-center gap-6"):
         ui.button("New Workout", on_click=lambda: ui.navigate.to("/workout/new"))
         ui.button("This Week", on_click=lambda: ui.navigate.to("/week"))
         ui.button("Logout", on_click=lambda: (set_current_user_id(None), ui.navigate.to("/"))).props("outline")

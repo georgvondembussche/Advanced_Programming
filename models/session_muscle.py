@@ -1,12 +1,8 @@
 # models/session_muscle.py
 from __future__ import annotations
-
 from sqlalchemy import ForeignKey, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-
 from models.base import Base
-
-
 class SessionMuscle(Base):
     """
     Join table: WorkoutSession <-> MuscleGroup (many-to-many)

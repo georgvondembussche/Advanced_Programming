@@ -1,11 +1,8 @@
 # main.py
 from __future__ import annotations
-
 import os
 from datetime import date
-
 from nicegui import ui, app
-
 from db.engine import init_db
 from services.auth_service import AuthService
 from services.workout_service import WorkoutService
@@ -27,10 +24,8 @@ def build_services():
     muscle_map = MuscleMapService(workout_service=workout)
     return auth, workout, muscle_map
 
-
 init_db()
 auth_service, workout_service, muscle_map_service = build_services()
-
 
 # -----------------------------
 # Helpers: session state
@@ -38,13 +33,11 @@ auth_service, workout_service, muscle_map_service = build_services()
 def get_current_user_id() -> int | None:
     return app.storage.user.get("user_id")
 
-
 def set_current_user_id(user_id: int | None) -> None:
     if user_id is None:
         app.storage.user.clear()
     else:
         app.storage.user["user_id"] = user_id
-
 
 def require_login() -> int:
     user_id = get_current_user_id()
@@ -52,7 +45,6 @@ def require_login() -> int:
         ui.navigate.to("/")
         raise RuntimeError("Not logged in")
     return user_id
-
 
 # -----------------------------
 # Pages
@@ -90,7 +82,6 @@ def login_page():
         with ui.row().classes("gap-2"):
             ui.button("Login", on_click=do_login)
             ui.button("Register", on_click=do_register).props("outline")
-
 
 @ui.page("/dashboard")
 def dashboard_page():
@@ -140,6 +131,7 @@ def dashboard_page():
         """,
     )
 
+
     def delete_row(ev):
         try:
             row = ev.args
@@ -151,6 +143,68 @@ def dashboard_page():
 
     table.on("delete_row", delete_row)
 
+    def edit_row(ev):
+        row = ev.args
+        ui.navigate.to(f"/workout/edit/{row['id']}")
+
+    table.on("edit_row", edit_row)
+    table.on("delete_row", delete_row)
+
+    table.add_slot(
+        "body-cell-actions",
+        r"""
+        <q-td :props="props">
+            <q-btn dense flat icon="edit" @click="$parent.$emit('edit_row', props.row)" />
+            <q-btn dense flat icon="delete" @click="$parent.$emit('delete_row', props.row)" />
+        </q-td>
+        """,
+    )
+
+@ui.page("/workout/edit/{session_id}")
+def edit_workout_page(session_id: int):
+    user_id = require_login()
+
+    session_data = workout_service.get_session_by_id(session_id=session_id, user_id=user_id)
+    all_muscles = workout_service.list_muscles()
+
+    ui.label("Edit Workout").classes("text-2xl font-bold")
+
+    with ui.card().classes("w-full max-w-2xl"):
+        workout_date = ui.date(value=session_data["date"].isoformat())
+        notes = ui.textarea("Notes (optional)", value=session_data["notes"] or "").props("autogrow")
+
+        ui.label("Muscles trained").classes("font-semibold")
+
+        selected_ids = set(session_data["muscle_ids"])
+        checkboxes = []
+
+        with ui.column().classes("gap-1"):
+            for m in all_muscles:
+                cb = ui.checkbox(m["name"], value=(m["id"] in selected_ids))
+                checkboxes.append((m, cb))
+
+        def save():
+            new_muscle_ids = [m["id"] for (m, cb) in checkboxes if cb.value]
+            if not new_muscle_ids:
+                ui.notify("Select at least one muscle group.", type="warning")
+                return
+
+            try:
+                workout_service.update_session(
+                    session_id=session_id,
+                    user_id=user_id,
+                    workout_date=date.fromisoformat(workout_date.value),
+                    notes=notes.value,
+                    muscle_ids=new_muscle_ids,
+                )
+                ui.notify("Workout updated!", type="positive")
+                ui.navigate.to("/dashboard")
+            except ValueError as e:
+                ui.notify(str(e), type="negative")
+
+        with ui.row().classes("gap-2"):
+            ui.button("Save Changes", on_click=save)
+            ui.button("Cancel", on_click=lambda: ui.navigate.to("/dashboard")).props("outline")      
 
 @ui.page("/workout/new")
 def new_workout_page():
@@ -183,7 +237,7 @@ def new_workout_page():
                     user_id=user_id,
                     workout_date=date.fromisoformat(workout_date.value),
                     notes=notes.value,
-                    muscle_ids=selected_ids,
+                    muscle_ids=new_muscle_ids,
                 )
                 ui.notify("Workout saved!", type="positive")
                 ui.navigate.to("/dashboard")
@@ -191,7 +245,7 @@ def new_workout_page():
                 ui.notify(str(e), type="negative")
 
         with ui.row().classes("gap-2"):
-            ui.button("Save Workout", on_click=save)
+            ui.button("Save Workout", on_click=save).props("outline")
             ui.button("Cancel", on_click=lambda: ui.navigate.to("/dashboard")).props("outline")
 
 
@@ -220,7 +274,6 @@ def week_view_page():
 
     with ui.row().classes("gap-2"):
         ui.button("Back", on_click=lambda: ui.navigate.to("/dashboard"))
-
 
 # -----------------------------
 # Run

@@ -1,12 +1,8 @@
 # models/muscle_group.py
 from __future__ import annotations
-
 from sqlalchemy import String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-
 from models.base import Base
-
-
 class MuscleGroup(Base):
     __tablename__ = "muscle_groups"
 

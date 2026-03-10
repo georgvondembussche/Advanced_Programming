@@ -1,13 +1,9 @@
 # db/engine.py
 from __future__ import annotations
-
 from pathlib import Path
-
 from sqlalchemy import create_engine
 from sqlalchemy.engine import Engine
-
 from models.base import Base
-
 
 def _database_url() -> str:
     # Put SQLite file into ./data/gym_tracker.db
@@ -16,9 +12,7 @@ def _database_url() -> str:
     db_path = data_dir / "gym_tracker.db"
     return f"sqlite:///{db_path}"
 
-
 _ENGINE: Engine | None = None
-
 
 def get_engine() -> Engine:
     global _ENGINE
@@ -29,7 +23,6 @@ def get_engine() -> Engine:
             future=True,
         )
     return _ENGINE
-
 
 def init_db() -> None:
     """Create tables and seed default data."""

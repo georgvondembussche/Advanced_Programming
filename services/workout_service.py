@@ -215,5 +215,5 @@ class WorkoutService:
 
             session.commit()
 
-            return result
+            
     

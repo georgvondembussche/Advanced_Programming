@@ -12,14 +12,6 @@ class MuscleMapService:
         self.workout_service = workout_service
 
     def week_summary(self, user_id: int, day_in_week: date) -> dict[str, Any]:
-        """
-        Returns:
-          {
-            "week_start": date,
-            "week_end": date,
-            "muscles": [{"name": str, "count": int, "intensity": int}, ...]
-          }
-        """
         week_start, week_end = week_range(day_in_week)
 
         # This will work once WorkoutService implements list_sessions_in_range()

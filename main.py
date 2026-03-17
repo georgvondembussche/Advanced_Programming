@@ -193,7 +193,7 @@ def edit_workout_page(session_id: int):
                 workout_service.update_session(
                     session_id=session_id,
                     user_id=user_id,
-                    workout_date=date.fromisoformat(workout_date.value),
+                    workout_date=date.fromisoformat(str(workout_date.value).replace("/", "-")),
                     notes=notes.value,
                     muscle_ids=new_muscle_ids,
                 )

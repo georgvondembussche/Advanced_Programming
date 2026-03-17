@@ -146,6 +146,8 @@ class WorkoutService:
                         "muscle_names": names,
                     }
                 )
+            return result
+        
     def get_session_by_id(self, session_id: int, user_id: int) -> dict:
         with get_session() as session:
             ws = (

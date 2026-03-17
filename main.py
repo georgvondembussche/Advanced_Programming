@@ -198,6 +198,7 @@ def edit_workout_page(session_id: int):
                     muscle_ids=new_muscle_ids,
                 )
                 ui.notify("Workout updated!", type="positive")
+                ui.timer(0.8, lambda: ui.navigate.to("/dashboard"), once=True)
                 ui.navigate.to("/dashboard")
             except ValueError as e:
                 ui.notify(str(e), type="negative")
@@ -235,11 +236,12 @@ def new_workout_page():
             try:
                 workout_service.create_session(
                     user_id=user_id,
-                    workout_date=date.fromisoformat(workout_date.value),
+                    workout_date=date.fromisoformat(str(workout_date.value).replace("/", "-")),
                     notes=notes.value,
-                    muscle_ids=new_muscle_ids,
+                    muscle_ids=selected_ids,
                 )
                 ui.notify("Workout saved!", type="positive")
+                ui.timer(0.8, lambda: ui.navigate.to("/dashboard"), once=True)
                 ui.navigate.to("/dashboard")
             except ValueError as e:
                 ui.notify(str(e), type="negative")

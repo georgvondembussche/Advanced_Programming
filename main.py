@@ -133,14 +133,28 @@ def dashboard_page():
 
 
     def delete_row(ev):
+        row_data = ev.args
+        
+        
+        with ui.dialog() as dialog, ui.card().classes('p-4'):
+            ui.label(f'Do you want to delete the entry from the {row_data["date"]} ?')
+            with ui.row().classes('w-full justify-end'):
+                ui.button('Cancel', on_click=dialog.close).props('flat')
+                ui.button('Delete', on_click=lambda: execute_deletion(row_data, dialog), color='red')
+        
+        dialog.open()
+
+    def execute_deletion(row, dialog):
         try:
-            row = ev.args
+        
             workout_service.delete_session(session_id=row["id"], user_id=user_id)
             ui.notify("Workout deleted", type="positive")
-            ui.navigate.to("/dashboard")  # simple refresh for MVP
-        except ValueError as e:
-            ui.notify(str(e), type="negative")
+            dialog.close()
+            ui.navigate.to("/dashboard")
+        except Exception as e:
+            ui.notify(f"Fehler: {e}", type="negative")
 
+    
     table.on("delete_row", delete_row)
 
     def edit_row(ev):

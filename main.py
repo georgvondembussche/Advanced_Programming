@@ -81,7 +81,30 @@ def login_page():
 
         with ui.row().classes("gap-2"):
             ui.button("Login", on_click=do_login)
-            ui.button("Register", on_click=do_register).props("outline")
+            ui.button("Register", on_click=lambda: ui.navigate.to("/register")).props("outline")
+
+@ui.page('/register')
+def register_page():
+    with ui.card().classes('absolute-center w-full max-w-md'):
+        ui.label('Register').classes('text-2xl font-bold')
+        ui.label('Create an account to start.').classes('text-gray-600')
+        
+        new_username = ui.input('Username').props('clearable')
+        new_password = ui.input('Passwort', password=True, password_toggle_button=True)
+        
+        def do_create_account():
+            try:
+                
+                user_id = auth_service.register(new_username.value or "", new_password.value or "")
+                set_current_user_id(user_id)
+                ui.notify('Register Succesfull!', type='positive')
+                ui.navigate.to("/dashboard")
+            except ValueError as e:
+                ui.notify(str(e), type='negative')
+
+        with ui.row().classes('gap-2'):
+            ui.button('Create Account', on_click=do_create_account)
+            ui.button('Cancel', on_click=lambda: ui.navigate.to('/')).props('outline')
 
 @ui.page("/dashboard")
 def dashboard_page():
@@ -139,7 +162,7 @@ def dashboard_page():
         with ui.dialog() as dialog, ui.card().classes('p-4'):
             ui.label(f'Do you want to delete the entry from the {row_data["date"]} ?')
             with ui.row().classes('w-full justify-end'):
-                ui.button('Cancel', on_click=dialog.close).props('flat')
+                ui.button('Cancel', on_click=lambda: dialog.close()).props('flat')
                 ui.button('Delete', on_click=lambda: execute_deletion(row_data, dialog), color='red')
         
         dialog.open()

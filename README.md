@@ -86,8 +86,10 @@ Entities (tables):
 - As a user, I want to create a workout session with a date.
 - As a user, I want to be able to log individual exercises and multiple sets (weight + reps).
 - As a user, I want to edit or delete sets if I made a mistake.
+- As a user, I want to be able to add text notes to my workout logs so that I can remember how I felt, write down specific exercises I did, or track any minor injuries.
 
 ### Progress & Insights
 - As a user, I want to see my progress for an exercise over time (best set / max weight 1RM / volume).
 - As a user, I want to see weekly training volume and frequency.
 - As a user, I want a muscle heatmap that shows which muscles I trained this week.
+- As a user, I want to see a table of my recent workout sessions on my dashboard so that I can quickly review the dates I went to the gym and the muscles I trained.

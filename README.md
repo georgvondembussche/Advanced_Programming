@@ -84,7 +84,7 @@ Entities (tables):
 
 ### Workout Logging
 - As a user, I want to create a workout session with a date.
-- As a user, I want to add exercises and multiple sets (weight + reps).
+- As a user, I want to be able to log individual exercises and multiple sets (weight + reps).
 - As a user, I want to edit or delete sets if I made a mistake.
 
 ### Progress & Insights

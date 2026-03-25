@@ -162,8 +162,8 @@ def dashboard_page():
         with ui.dialog() as dialog, ui.card().classes('p-4'):
             ui.label(f'Do you want to delete the entry from the {row_data["date"]} ?')
             with ui.row().classes('w-full justify-end'):
-                ui.button('Cancel', on_click=lambda: dialog.close()).props('flat')
-                ui.button('Delete', on_click=lambda: execute_deletion(row_data, dialog), color='red')
+                ui.button('Cancel', on_click=dialog.close).props('flat')
+                ui.button('Delete', on_click=lambda: execute_deletion(row_data, dialog), color='red',)
         
         dialog.open()
 

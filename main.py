@@ -48,21 +48,35 @@ def require_login() -> int:
     return user_id
 
 # -----------------------------
-# Pages
+# Pages (Login/ Register/ Dashboard/ Workout/ Week)
 # -----------------------------
 @ui.page("/")
 def login_page():
     ui.dark_mode().enable()
+
+    ui.add_head_html('''
+    <style>
+        .register-page {
+            min-height: 110vh;
+            width: 100%;
+            background: url("/static/Login_Page1.png") no-repeat center center;
+            background-size: cover;
+        }
+    </style>
+    ''')
+
     if get_current_user_id() is not None:
         ui.navigate.to("/dashboard")
         return
 
-    ui.label("Gym Progress Tracker").classes("text-2xl font-bold")
-    ui.label("Login or register to start tracking.").classes("text-gray-600")
+    with ui.column().classes('register-page w-full h-screen items-center justify-center'):
 
-    with ui.card().classes("w-full max-w-md"):
-        username = ui.input("Username").props("clearable")
-        password = ui.input("Password", password=True, password_toggle_button=True)
+        ui.label("Gym Progress Tracker").classes("text-7xl font-bold")
+
+        with ui.card().classes("w-full max-w-md").style('background: #1e1e1e; border-radius: 16px; padding: 30px;'):
+            ui.label("Login or register to start tracking.").classes("text-gray-600")
+            username = ui.input("Username").props("clearable")
+            password = ui.input("Password", password=True, password_toggle_button=True)
 
         def do_login():
             try:
@@ -81,8 +95,8 @@ def login_page():
                 ui.notify(str(e), type="negative")
 
         with ui.row().classes("gap-2"):
-            ui.button("Login", on_click=do_login)
-            ui.button("Register", on_click=lambda: ui.navigate.to("/register")).props("outline")
+            ui.button("Login", on_click=do_login).style('background: white !important; color: black !important;')
+            ui.button("Register", on_click=lambda: ui.navigate.to("/register")).style('background: white !important; color: black !important;')
 
 @ui.page('/register')
 def register_page():
@@ -124,7 +138,7 @@ def register_page():
                 'Create Account',
                 on_click=do_create_account
             ).style('background: white !important; color: black !important')
-            ui.button('Cancel', on_click=lambda: ui.navigate.to('/')).style('background: white !important; color: black !important;')
+            ui.button('Back to Login', on_click=lambda: ui.navigate.to('/')).style('background: white !important; color: black !important;')
 
 @ui.page("/dashboard")
 def dashboard_page():

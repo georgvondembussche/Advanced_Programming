@@ -9,13 +9,6 @@ from services.workout_service import WorkoutService
 from services.muscle_map_service import MuscleMapService
 app.add_static_files('/static', 'static')
 
-def page_container(title: str):
-    ui.label(title).classes("text-3xl font-bold mb-4")
-    return ui.column().classes("w-full items-center")
-
-def card(width="max-w-2xl"):
-    return ui.card().classes(f"w-full {width} p-6")
-
 # -----------------------------
 # Bootstrap
 # -----------------------------

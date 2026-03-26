@@ -40,14 +40,15 @@ def init_db() -> None:
     from db.session import get_session
     from models.muscle_group import MuscleGroup
 
-    # ✅ Your simplified muscle groups
+    #Muscles to be trained
     default_muscles = [
         ("Legs", "legs"),
         ("Chest", "chest"),
         ("Back", "back"),
         ("Shoulders", "shoulders"),
         ("Biceps", "biceps"),
-        ("Triceps", "triceps")
+        ("Triceps", "triceps"),
+        ("Abs", "abs"),
     ]
 
     with get_session() as session:

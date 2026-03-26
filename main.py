@@ -56,11 +56,19 @@ def login_page():
 
     ui.add_head_html('''
     <style>
-        .register-page {
-            min-height: 110vh;
-            width: 100%;
+        html, body {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        .login-page {
+            min-height: 100vh;
+            width: 100vw;
             background: url("/static/Login_Page1.png") no-repeat center center;
             background-size: cover;
+            background-attachment: fixed;
         }
     </style>
     ''')
@@ -69,7 +77,7 @@ def login_page():
         ui.navigate.to("/dashboard")
         return
 
-    with ui.column().classes('register-page w-full h-screen items-center justify-center'):
+    with ui.column().classes('login-page w-full h-screen items-center justify-center'):
 
         ui.label("Gym Progress Tracker").classes("text-7xl font-bold")
 
@@ -110,11 +118,18 @@ def register_page():
 
     ui.add_head_html('''
     <style>
+        html, body{
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            overflow: hidden;
+        }
         .register-page {
             min-height: 110vh;
             width: 100%;
             background: url("/static/Register_Page2.png") no-repeat center center;
             background-size: cover;
+            overflow: hidden;
         }
     </style>
     ''')

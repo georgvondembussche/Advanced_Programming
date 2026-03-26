@@ -98,6 +98,12 @@ def login_page():
             ui.button("Login", on_click=do_login).style('background: white !important; color: black !important;')
             ui.button("Register", on_click=lambda: ui.navigate.to("/register")).style('background: white !important; color: black !important;')
 
+        def handle_enter(e): #logs in when you hit enter
+            do_login()
+
+        username.on('keydown.enter', lambda e: do_login())
+        password.on('keydown.enter', lambda e: do_login())
+
 @ui.page('/register')
 def register_page():
     ui.dark_mode().enable()

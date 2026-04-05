@@ -31,7 +31,10 @@ class WorkoutService:
     ) -> int:
         if not muscle_ids:
             raise ValueError("Select at least one muscle group.")
-
+# --- Date Validation ---
+        if workout_date > date.today():
+            raise ValueError("Workout date cannot be in the future.")
+        # ----------------------------
         with get_session() as session:
             # --- ADD THIS CHECK ---
             existing_session = session.query(WorkoutSession).filter(

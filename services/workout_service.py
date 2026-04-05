@@ -220,5 +220,14 @@ class WorkoutService:
 
             session.commit()
 
-            
+    def get_last_workout_date(self, user_id: int) -> date | None:
+        """Retrieves only the date of the most recent workout session."""
+        with get_session() as session:
+            ws = (
+                session.query(WorkoutSession)
+                .filter(WorkoutSession.user_id == user_id)
+                .order_by(WorkoutSession.workout_date.desc(), WorkoutSession.id.desc())
+                .first()
+            )
+            return ws.workout_date if ws else None
     

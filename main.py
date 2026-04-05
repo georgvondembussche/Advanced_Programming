@@ -172,6 +172,10 @@ def dashboard_page():
             
             ui.label("Dashboard").classes("w-full items-center")
 
+            last_date = workout_service.get_last_workout_date(user_id)
+            if last_date:
+                ui.label(f"Last Session: {last_date.strftime('%d.%m.%Y')}").classes("text-gray-400 mb-4 items-center w-full")
+
             with ui.row().classes("items-center gap-6"):
                 ui.button("New Workout", on_click=lambda: ui.navigate.to("/workout/new"))
                 ui.button("This Week", on_click=lambda: ui.navigate.to("/week"))

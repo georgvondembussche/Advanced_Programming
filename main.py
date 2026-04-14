@@ -309,6 +309,37 @@ def new_workout_page():
     all_muscles = workout_service.list_muscles()  # [{"id":..,"name":..,"svg_key":..}]
 
     with ui.card().classes("w-full max-w-2xl"):
+        
+        # --- NEW CODE: TEMPLATE DROPDOWN ---
+        recent_sessions = workout_service.list_sessions(user_id=user_id, limit=10)
+        template_options = {
+            s['id']: f"{s['date'].strftime('%d.%m.%Y')} - {', '.join(s['muscle_names'])}" 
+            for s in recent_sessions
+        }
+
+        def load_template(e):
+            if not e.value:
+                return
+            details = workout_service.get_session_by_id(e.value, user_id)
+            
+            # Update the text area
+            notes.value = details['notes']
+            
+            # Update the checkboxes
+            selected_muscles = set(details['muscle_ids'])
+            for m, cb in checkboxes:
+                cb.value = m['id'] in selected_muscles
+                
+            ui.notify("Template loaded!", type='positive')
+
+        ui.select(
+            options=template_options,
+            label="Load from past workout...",
+            on_change=load_template,
+            clearable=True
+        ).classes('w-full mb-4')
+        # --- END NEW CODE ---
+
         workout_date = ui.date(value=date.today().isoformat())
         notes = ui.textarea("Notes (optional)").props("autogrow")
 

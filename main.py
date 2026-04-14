@@ -7,13 +7,7 @@ from db.engine import init_db
 from services.auth_service import AuthService
 from services.workout_service import WorkoutService
 from services.muscle_map_service import MuscleMapService
-
-def page_container(title: str):
-    ui.label(title).classes("text-3xl font-bold mb-4")
-    return ui.column().classes("w-full items-center")
-
-def card(width="max-w-2xl"):
-    return ui.card().classes(f"w-full {width} p-6")
+app.add_static_files('/static', 'static')
 
 # -----------------------------
 # Bootstrap
@@ -47,21 +41,43 @@ def require_login() -> int:
     return user_id
 
 # -----------------------------
-# Pages
+# Pages (Login/ Register/ Dashboard/ Workout/ Week)
 # -----------------------------
 @ui.page("/")
 def login_page():
-    # If already logged in, go to dashboard
+    ui.dark_mode().enable()
+
+    ui.add_head_html('''
+    <style>
+        html, body {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        .login-page {
+            min-height: 100vh;
+            width: 100vw;
+            background: url("/static/Login_Page1.png") no-repeat center center;
+            background-size: cover;
+            background-attachment: fixed;
+        }
+    </style>
+    ''')
+
     if get_current_user_id() is not None:
         ui.navigate.to("/dashboard")
         return
 
-    ui.label("Gym Progress Tracker").classes("text-2xl font-bold")
-    ui.label("Login or register to start tracking.").classes("text-gray-600")
+    with ui.column().classes('login-page w-full h-screen items-center justify-center'):
 
-    with ui.card().classes("w-full max-w-md"):
-        username = ui.input("Username").props("clearable")
-        password = ui.input("Password", password=True, password_toggle_button=True)
+        ui.label("Gym Progress Tracker").classes("text-7xl font-bold")
+
+        with ui.card().classes("w-full max-w-md").style('background: #1e1e1e; border-radius: 16px; padding: 30px;'):
+            ui.label("Login or register to start tracking.").classes("text-gray-600")
+            username = ui.input("Username").props("clearable")
+            password = ui.input("Password", password=True, password_toggle_button=True)
 
         def do_login():
             try:
@@ -80,47 +96,94 @@ def login_page():
                 ui.notify(str(e), type="negative")
 
         with ui.row().classes("gap-2"):
-            ui.button("Login", on_click=do_login)
-            ui.button("Register", on_click=lambda: ui.navigate.to("/register")).props("outline")
+            ui.button("Login", on_click=do_login).style('background: white !important; color: black !important;')
+            ui.button("Register", on_click=lambda: ui.navigate.to("/register")).style('background: white !important; color: black !important;')
+
+        def handle_enter(e): #logs in when you hit enter
+            do_login()
+
+        username.on('keydown.enter', lambda e: do_login())
+        password.on('keydown.enter', lambda e: do_login())
 
 @ui.page('/register')
 def register_page():
-    with ui.card().classes('absolute-center w-full max-w-md'):
-        ui.label('Register').classes('text-2xl font-bold')
-        ui.label('Create an account to start.').classes('text-gray-600')
-        
-        new_username = ui.input('Username').props('clearable')
-        new_password = ui.input('Passwort', password=True, password_toggle_button=True)
-        
+    ui.dark_mode().enable()
+
+    ui.add_head_html('''
+    <style>
+        html, body{
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            overflow: hidden;
+        }
+        .register-page {
+            min-height: 110vh;
+            width: 100%;
+            background: url("/static/Register_Page2.png") no-repeat center center;
+            background-size: cover;
+            overflow: hidden;
+        }
+    </style>
+    ''')
+
+    with ui.column().classes('register-page w-full items-center justify-center'):
+
+        with ui.card().classes('w-full max-w-lg shadow-2xl')\
+            .style('background: #1e1e1e; border-radius: 16px; padding: 30px;'):
+
+            ui.label('Register').classes('text-2xl font-bold text-white')
+            ui.label('Create an account to start.').classes('text-gray-400')
+
+            new_username = ui.input('Username').props('clearable')
+            new_password = ui.input('Password', password=True, password_toggle_button=True)
+
         def do_create_account():
             try:
-                
                 user_id = auth_service.register(new_username.value or "", new_password.value or "")
                 set_current_user_id(user_id)
-                ui.notify('Register Succesfull!', type='positive')
+                ui.notify('Register Successful!', type='positive')
                 ui.navigate.to("/dashboard")
             except ValueError as e:
                 ui.notify(str(e), type='negative')
 
         with ui.row().classes('gap-2'):
-            ui.button('Create Account', on_click=do_create_account)
-            ui.button('Cancel', on_click=lambda: ui.navigate.to('/')).props('outline')
+            ui.button(
+                'Create Account',
+                on_click=do_create_account
+            ).style('background: white !important; color: black !important')
+            ui.button('Back to Login', on_click=lambda: ui.navigate.to('/')).style('background: white !important; color: black !important;')
 
 @ui.page("/dashboard")
 def dashboard_page():
+    ui.dark_mode().enable()
     user_id = require_login()
 
-    ui.label("Dashboard").classes("text-2xl font-bold")
+    with ui.column().classes("w-full items-center"):
+        with ui.column().style(
+            "max-width: 1100px; "
+            "width: 100%; "
+            "background: #262626; "
+            "border-radius: 20px; "
+            "padding: 30px; "
+            "margin-top: 30px; "
+            "box-shadow: 0 10px 30px rgba(0,0,0,0.4);"
+        ):
+            
+            ui.label("Dashboard").classes("w-full items-center")
 
-    with ui.row().classes("items-center gap-6"):
-        ui.button("New Workout", on_click=lambda: ui.navigate.to("/workout/new"))
-        ui.button("This Week", on_click=lambda: ui.navigate.to("/week"))
-        ui.button("Logout", on_click=lambda: (set_current_user_id(None), ui.navigate.to("/"))).props("outline")
+            with ui.row().classes("items-center gap-6"):
+                ui.button("New Workout", on_click=lambda: ui.navigate.to("/workout/new"))
+                ui.button("This Week", on_click=lambda: ui.navigate.to("/week"))
+                ui.button(
+                    "Logout",
+                    on_click=lambda: (set_current_user_id(None), ui.navigate.to("/"))
+                ).props("outline")
 
     ui.separator()
     ui.label("Recent Workouts").classes("text-lg font-semibold")
 
-    sessions = workout_service.list_sessions(user_id=user_id, limit=20)
+    sessions = workout_service.list_sessions(user_id=user_id, limit=14)
 
     if not sessions:
         ui.label("No workouts yet. Click 'New Workout' to add your first one.").classes("text-gray-600")
@@ -152,10 +215,11 @@ def dashboard_page():
         with ui.dialog() as dialog, ui.card().classes('p-4'):
             ui.label(f'Do you want to delete the entry from the {row_data["date"]} ?')
             with ui.row().classes('w-full justify-end'):
-                ui.button('Cancel', on_click=lambda: dialog.close()).props('flat')
-                ui.button('Delete', on_click=lambda: execute_deletion(row_data, dialog), color='red')
+                ui.button('Cancel', on_click=lambda: close_delete_dialog(dialog)).props('flat')
+                ui.button('Delete', on_click=lambda: execute_deletion(row_data, dialog), color='red',)
         
         dialog.open()
+
     def close_delete_dialog(dialog):
         dialog.close()
 
@@ -168,8 +232,8 @@ def dashboard_page():
             ui.navigate.to("/dashboard")
         except Exception as e:
             ui.notify(f"Fehler: {e}", type="negative")
-    
 
+    
     def edit_row(ev):
         row = ev.args
         ui.navigate.to(f"/workout/edit/{row['id']}")
@@ -189,6 +253,7 @@ def dashboard_page():
 
 @ui.page("/workout/edit/{session_id}")
 def edit_workout_page(session_id: int):
+    ui.dark_mode().enable()
     user_id = require_login()
 
     session_data = workout_service.get_session_by_id(session_id=session_id, user_id=user_id)
@@ -236,6 +301,7 @@ def edit_workout_page(session_id: int):
 
 @ui.page("/workout/new")
 def new_workout_page():
+    ui.dark_mode().enable()
     user_id = require_login()
 
     ui.label("New Workout").classes("text-2xl font-bold")
@@ -280,6 +346,7 @@ def new_workout_page():
 
 @ui.page("/week")
 def week_view_page():
+    ui.dark_mode().enable()
     user_id = require_login()
 
     ui.label("This Week").classes("text-2xl font-bold")

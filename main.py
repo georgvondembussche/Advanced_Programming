@@ -239,7 +239,6 @@ def dashboard_page():
             ui.navigate.to("/dashboard")
         except Exception as e:
             ui.notify(f"Fehler: {e}", type="negative")
-
     
     table.on("delete_row", delete_row)
 

@@ -4,5 +4,6 @@
     "**/__pycache__": true,
     ".nicegui": true,
     "**/*.pyc": true
-  }
+  },
+  "python-envs.defaultEnvManager": "ms-python.python:system"
 }

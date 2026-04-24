@@ -140,6 +140,7 @@ def register_pages(
                 with ui.row().classes("items-center gap-6"):
                     ui.button("New Workout", on_click=lambda: ui.navigate.to("/workout/new"))
                     ui.button("This Week", on_click=lambda: ui.navigate.to("/week"))
+                    ui.button("Heatmap", on_click=lambda: ui.navigate.to("/heatmap"))
                     ui.button(
                         "Logout",
                         on_click=lambda: (set_current_user_id(None), ui.navigate.to("/"))
@@ -354,3 +355,137 @@ def register_pages(
 
         with ui.row().classes("gap-2"):
             ui.button("Back", on_click=lambda: ui.navigate.to("/dashboard"))
+    @ui.page("/heatmap")
+    def heatmap_page():
+        ui.dark_mode().enable()
+        user_id = require_login()
+
+        ui.label("Muscle Heatmap").classes("text-2xl font-bold")
+
+        result = muscle_map_service.week_summary(
+            user_id=user_id,
+            day_in_week=date.today(),
+        )
+
+        trained = {
+            item["name"].lower().replace(" ", ""): item["count"]
+            for item in result["muscles"]
+        }
+
+        def color(muscle: str) -> str:
+            count = trained.get(muscle.lower().replace(" ", ""), 0)
+
+            if count <= 0:
+                return "#3a3a3a"
+            if count == 1:
+                return "#facc15"
+            if count == 2:
+                return "#fb923c"
+            return "#ef4444"
+
+        svg = f"""
+        <svg viewBox="0 0 500 650" width="100%" style="max-width:520px">
+            <style>
+                .muscle {{
+                    stroke: #111;
+                    stroke-width: 3;
+                    transition: 0.2s;
+                }}
+                .muscle:hover {{
+                    opacity: 0.8;
+                    cursor: pointer;
+                }}
+                text {{
+                    fill: white;
+                    font-size: 18px;
+                    font-family: Arial, sans-serif;
+                    text-anchor: middle;
+                }}
+            </style>
+
+            <!-- Head -->
+            <circle cx="250" cy="70" r="40" fill="#555" stroke="#111" stroke-width="3"/>
+
+            <!-- Shoulders -->
+            <rect class="muscle" x="125" y="125" width="80" height="55" rx="25"
+                  fill="{color('shoulders')}">
+                <title>Shoulders</title>
+            </rect>
+            <rect class="muscle" x="295" y="125" width="80" height="55" rx="25"
+                  fill="{color('shoulders')}">
+                <title>Shoulders</title>
+            </rect>
+
+            <!-- Chest -->
+            <rect class="muscle" x="175" y="140" width="70" height="90" rx="20"
+                  fill="{color('chest')}">
+                <title>Chest</title>
+            </rect>
+            <rect class="muscle" x="255" y="140" width="70" height="90" rx="20"
+                  fill="{color('chest')}">
+                <title>Chest</title>
+            </rect>
+
+            <!-- Back -->
+            <path class="muscle" d="M175 245 Q250 290 325 245 L315 350 Q250 390 185 350 Z"
+                  fill="{color('back')}">
+                <title>Back</title>
+            </path>
+
+            <!-- Abs -->
+            <rect class="muscle" x="205" y="245" width="90" height="125" rx="25"
+                  fill="{color('abs')}">
+                <title>Abs</title>
+            </rect>
+            <line x1="250" y1="250" x2="250" y2="360" stroke="#111" stroke-width="3"/>
+            <line x1="210" y1="285" x2="290" y2="285" stroke="#111" stroke-width="3"/>
+            <line x1="210" y1="325" x2="290" y2="325" stroke="#111" stroke-width="3"/>
+
+            <!-- Biceps -->
+            <rect class="muscle" x="95" y="190" width="55" height="120" rx="25"
+                  fill="{color('biceps')}">
+                <title>Biceps</title>
+            </rect>
+            <rect class="muscle" x="350" y="190" width="55" height="120" rx="25"
+                  fill="{color('biceps')}">
+                <title>Biceps</title>
+            </rect>
+
+            <!-- Triceps -->
+            <rect class="muscle" x="60" y="210" width="45" height="120" rx="22"
+                  fill="{color('triceps')}">
+                <title>Triceps</title>
+            </rect>
+            <rect class="muscle" x="395" y="210" width="45" height="120" rx="22"
+                  fill="{color('triceps')}">
+                <title>Triceps</title>
+            </rect>
+
+            <!-- Legs -->
+            <rect class="muscle" x="180" y="390" width="60" height="180" rx="28"
+                  fill="{color('legs')}">
+                <title>Legs</title>
+            </rect>
+            <rect class="muscle" x="260" y="390" width="60" height="180" rx="28"
+                  fill="{color('legs')}">
+                <title>Legs</title>
+            </rect>
+
+            <!-- Labels -->
+            <text x="250" y="625">Muscelgroups trained this week</text>
+        </svg>
+        """
+
+        with ui.card().classes("w-full max-w-2xl items-center"):
+            ui.html(svg)
+
+            ui.separator()
+
+            ui.label("Legende").classes("font-semibold")
+            ui.label("Gray = Not Trained")
+            ui.label("Yellow = 1 Training")
+            ui.label("Orange = 2 Trainings")
+            ui.label("Red = 3+ Trainings")
+
+        with ui.row().classes("gap-2 mt-4"):
+            ui.button("Back", on_click=lambda: ui.navigate.to("/dashboard")).props("outline")

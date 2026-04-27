@@ -8,6 +8,7 @@ from db.session import get_session
 from models.muscle_group import MuscleGroup
 from models.session_muscle import SessionMuscle
 from models.workout_session import WorkoutSession
+from models.exercise import Exercise
 
 
 class WorkoutService:
@@ -230,4 +231,48 @@ class WorkoutService:
                 .first()
             )
             return ws.workout_date if ws else None
+    
+    # ---- Custom Exercises ----
+    def list_exercises(self, user_id: int) -> list[dict[str, Any]]:
+        with get_session() as session:
+            exercises = (
+                session.query(Exercise)
+                .filter(Exercise.user_id == user_id)
+                .order_by(Exercise.id.asc())
+                .all()
+            )
+            return [{"id": e.id, "name": e.name} for e in exercises]
+
+    def create_exercise(self, user_id: int, name: str) -> int:
+        if not name or not name.strip():
+            raise ValueError("Exercise name cannot be empty.")
+        
+        with get_session() as session:
+            # Check if exercise already exists for this user
+            existing = (
+                session.query(Exercise)
+                .filter(Exercise.user_id == user_id, Exercise.name == name.strip())
+                .first()
+            )
+            if existing:
+                raise ValueError(f"Exercise '{name}' already exists.")
+            
+            exercise = Exercise(user_id=user_id, name=name.strip())
+            session.add(exercise)
+            session.commit()
+            session.refresh(exercise)
+            return exercise.id
+
+    def delete_exercise(self, exercise_id: int, user_id: int) -> None:
+        with get_session() as session:
+            exercise = (
+                session.query(Exercise)
+                .filter(Exercise.id == exercise_id, Exercise.user_id == user_id)
+                .first()
+            )
+            if exercise is None:
+                raise ValueError("Exercise not found.")
+            
+            session.delete(exercise)
+            session.commit()
     

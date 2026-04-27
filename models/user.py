@@ -19,3 +19,9 @@ class User(Base):
         back_populates="user",
         cascade="all, delete-orphan",
     )
+
+    exercises = relationship(
+        "Exercise",
+        back_populates="user",
+        cascade="all, delete-orphan",
+    )

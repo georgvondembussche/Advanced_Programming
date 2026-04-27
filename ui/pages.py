@@ -125,6 +125,65 @@ def register_pages(
         ui.dark_mode().enable()
         user_id = require_login()
 
+        def show_add_exercise_dialog():
+            with ui.dialog() as dialog, ui.card().classes('p-6 w-full max-w-md'):
+                ui.label("Exercises").classes("text-xl font-bold")
+                
+                # List of existing exercises
+                exercise_list = ui.column().classes("gap-2 mb-4 border p-3 rounded")
+                
+                def refresh_exercise_list():
+                    exercise_list.clear()
+                    exercises = workout_service.list_exercises(user_id=user_id)
+                    if not exercises:
+                        with exercise_list:
+                            ui.label("No custom exercises yet.").classes("text-gray-500")
+                    else:
+                        for exercise in exercises:
+                            with exercise_list:
+                                with ui.row().classes("justify-between items-center w-full"):
+                                    ui.label(exercise["name"])
+                                    ui.button(
+                                        icon="delete",
+                                        on_click=lambda ex_id=exercise["id"]: delete_exercise(ex_id)
+                                    ).props("flat color=negative size=sm")
+                
+                def delete_exercise(ex_id):
+                    try:
+                        workout_service.delete_exercise(ex_id, user_id)
+                        ui.notify("Exercise deleted!", type="positive")
+                        refresh_exercise_list()
+                    except ValueError as e:
+                        ui.notify(str(e), type="negative")
+                
+                # Initial load of exercises
+                refresh_exercise_list()
+                
+                # Add new exercise section
+                ui.label("Add New Exercise").classes("text-md font-semibold mt-4")
+                exercise_name = ui.input("Exercise Name").classes("w-full")
+                
+                def add_exercise():
+                    try:
+                        if not exercise_name.value.strip():
+                            ui.notify("Exercise name cannot be empty.", type="warning")
+                            return
+                        workout_service.create_exercise(
+                            user_id=user_id,
+                            name=exercise_name.value.strip()
+                        )
+                        ui.notify("Exercise added!", type="positive")
+                        exercise_name.value = ""
+                        refresh_exercise_list()
+                    except ValueError as e:
+                        ui.notify(str(e), type="negative")
+                
+                with ui.row().classes('w-full justify-end gap-2'):
+                    ui.button("Close", on_click=dialog.close).props("outline")
+                    ui.button("Add", on_click=add_exercise)
+            
+            dialog.open()
+
         with ui.column().classes("w-full items-center"):
             with ui.column().style(
                 "max-width: 1100px; "
@@ -141,6 +200,7 @@ def register_pages(
                     ui.button("New Workout", on_click=lambda: ui.navigate.to("/workout/new"))
                     ui.button("Weekly Summary", on_click=lambda: ui.navigate.to("/week"))
                     ui.button("Heatmap", on_click=lambda: ui.navigate.to("/heatmap"))
+                    ui.button("Exercises", on_click=show_add_exercise_dialog)
                     ui.button(
                         "Logout",
                         on_click=lambda: (set_current_user_id(None), ui.navigate.to("/"))
@@ -221,6 +281,9 @@ def register_pages(
 
         session_data = workout_service.get_session_by_id(session_id=session_id, user_id=user_id)
         all_muscles = workout_service.list_muscles()
+        all_exercises_list = ["Benchpress", "Deadlift", "Squats", "Lat Pulldown"]
+        custom_exercises = workout_service.list_exercises(user_id=user_id)
+        all_exercises_list.extend([e["name"] for e in custom_exercises])
 
         ui.label("Edit Workout").classes("text-2xl font-bold")
 
@@ -228,15 +291,34 @@ def register_pages(
             workout_date = ui.date(value=session_data["date"].isoformat())
             notes = ui.textarea("Notes (optional)", value=session_data["notes"] or "").props("autogrow")
 
-            ui.label("Muscles trained").classes("font-semibold")
+            with ui.row().classes("gap-8 w-full"):
+                # Muscles trained section
+                with ui.column():
+                    ui.label("Muscles trained").classes("font-semibold")
 
-            selected_ids = set(session_data["muscle_ids"])
-            checkboxes = []
+                    selected_ids = set(session_data["muscle_ids"])
+                    checkboxes = []
 
-            with ui.column().classes("gap-1"):
-                for m in all_muscles:
-                    cb = ui.checkbox(m["name"], value=(m["id"] in selected_ids))
-                    checkboxes.append((m, cb))
+                    with ui.column().classes("gap-1"):
+                        for m in all_muscles:
+                            cb = ui.checkbox(m["name"], value=(m["id"] in selected_ids))
+                            checkboxes.append((m, cb))
+
+                # Exercises & PRs section
+                with ui.column():
+                    ui.label("Exercises & PRs (kg)").classes("font-semibold")
+                    exercise_inputs = {}
+
+                    with ui.column().classes("gap-3"):
+                        for exercise in all_exercises_list:
+                            with ui.row().classes("gap-2 items-center"):
+                                cb = ui.checkbox(exercise)
+                                pr_input = ui.input(
+                                    "PR",
+                                    placeholder="kg",
+                                    validation={"Please enter a number": lambda v: v == "" or v.replace(".", "", 1).replace("-", "", 1).isdigit()}
+                                ).props("type=number").style("width: 100px")
+                                exercise_inputs[exercise] = (cb, pr_input)
 
             def save():
                 new_muscle_ids = [m["id"] for (m, cb) in checkboxes if cb.value]
@@ -270,6 +352,9 @@ def register_pages(
         ui.label("New Workout").classes("text-2xl font-bold")
 
         all_muscles = workout_service.list_muscles()
+        all_exercises_list = ["Benchpress", "Deadlift", "Squats", "Lat Pulldown"]
+        custom_exercises = workout_service.list_exercises(user_id=user_id)
+        all_exercises_list.extend([e["name"] for e in custom_exercises])
 
         with ui.card().classes("w-full max-w-2xl"):
             recent_sessions = workout_service.list_sessions(user_id=user_id, limit=10)
@@ -300,12 +385,31 @@ def register_pages(
 
             workout_date = ui.date(value=date.today().isoformat())
 
-            ui.label("Muscles trained").classes("font-semibold")
+            with ui.row().classes("gap-8 w-full"):
+                # Muscles trained section
+                with ui.column():
+                    ui.label("Muscles trained").classes("font-semibold")
 
-            with ui.column().classes("gap-1"):
-                for m in all_muscles:
-                    cb = ui.checkbox(m["name"])
-                    checkboxes.append((m, cb))
+                    with ui.column().classes("gap-1"):
+                        for m in all_muscles:
+                            cb = ui.checkbox(m["name"])
+                            checkboxes.append((m, cb))
+
+                # Exercises & PRs section
+                with ui.column():
+                    ui.label("Exercises & PRs (kg)").classes("font-semibold")
+                    exercise_inputs = {}
+
+                    with ui.column().classes("gap-3"):
+                        for exercise in all_exercises_list:
+                            with ui.row().classes("gap-2 items-center"):
+                                cb = ui.checkbox(exercise)
+                                pr_input = ui.input(
+                                    "PR",
+                                    placeholder="kg",
+                                    validation={"Please enter a number": lambda v: v == "" or v.replace(".", "", 1).replace("-", "", 1).isdigit()}
+                                ).props("type=number").style("width: 100px")
+                                exercise_inputs[exercise] = (cb, pr_input)
 
             def save():
                 selected_ids = [m["id"] for (m, cb) in checkboxes if cb.value]

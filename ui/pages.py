@@ -139,7 +139,7 @@ def register_pages(
 
                 with ui.row().classes("items-center gap-6"):
                     ui.button("New Workout", on_click=lambda: ui.navigate.to("/workout/new"))
-                    ui.button("This Week", on_click=lambda: ui.navigate.to("/week"))
+                    ui.button("Weekly Summary", on_click=lambda: ui.navigate.to("/week"))
                     ui.button("Heatmap", on_click=lambda: ui.navigate.to("/heatmap"))
                     ui.button(
                         "Logout",
@@ -335,11 +335,25 @@ def register_pages(
         ui.dark_mode().enable()
         user_id = require_login()
 
-        ui.label("This Week").classes("text-2xl font-bold")
+        from datetime import timedelta
+        
+        # Track week offset using a container
+        state = {"week_offset": 0}
 
-        result = muscle_map_service.week_summary(user_id=user_id, day_in_week=date.today())
+        def get_week_label():
+            offset = state["week_offset"]
+            if offset == 0:
+                return "This Week"
+            elif offset == 1:
+                return "Last Week"
+            else:
+                return f"{offset} weeks ago"
 
-        with ui.card().classes("w-full max-w-2xl"):
+        @ui.refreshable
+        def week_display():
+            current_day = date.today() - timedelta(weeks=state["week_offset"])
+            result = muscle_map_service.week_summary(user_id=user_id, day_in_week=current_day)
+
             start_str = result["week_start"].strftime("%d.%m.%Y")
             end_str = result["week_end"].strftime("%d.%m.%Y")
 
@@ -352,6 +366,35 @@ def register_pages(
                 for item in result["muscles"]:
                     bar = "█" * (item["intensity"] + 1)
                     ui.label(f"{item['name']}: {item['count']} sessions  {bar}")
+
+        ui.label("Weekly Summary").classes("text-2xl font-bold")
+
+        # Navigation controls
+        with ui.row().classes("items-center gap-4 justify-center"):
+            def go_previous():
+                state["week_offset"] += 1
+                next_button.enabled = True
+                week_label.text = get_week_label()
+                week_display.refresh()
+
+            def go_next():
+                if state["week_offset"] > 0:
+                    state["week_offset"] -= 1
+                    if state["week_offset"] == 0:
+                        next_button.enabled = False
+                    week_label.text = get_week_label()
+                    week_display.refresh()
+
+            prev_button = ui.button(icon="arrow_back", on_click=go_previous).props("round flat")
+            week_label = ui.label(get_week_label())
+            next_button = ui.button(icon="arrow_forward", on_click=go_next).props("round flat")
+            
+            # Disable next button if we're at current week
+            if state["week_offset"] == 0:
+                next_button.enabled = False
+
+        with ui.card().classes("w-full max-w-2xl"):
+            week_display()
 
         with ui.row().classes("gap-2"):
             ui.button("Back", on_click=lambda: ui.navigate.to("/dashboard"))

@@ -1,5 +1,5 @@
 from __future__ import annotations
-from datetime import date
+from datetime import date, timedelta
 from nicegui import ui, app
 
 
@@ -12,11 +12,76 @@ def register_pages(
     set_current_user_id,
 ):
 
+    def build_heatmap_svg(result):
+        trained = {
+            item["name"].lower().replace(" ", ""): item["count"]
+            for item in result["muscles"]
+        }
+
+        def color(muscle: str) -> str:
+            count = trained.get(muscle.lower().replace(" ", ""), 0)
+
+            if count <= 0:
+                return "#3a3a3a"
+            if count == 1:
+                return "#facc15"
+            if count == 2:
+                return "#fb923c"
+            return "#ef4444"
+
+        return f"""
+        <svg viewBox="0 0 500 650" width="100%" style="max-width:520px">
+            <style>
+                .muscle {{
+                    stroke: #111;
+                    stroke-width: 3;
+                    transition: 0.2s;
+                }}
+                .muscle:hover {{
+                    opacity: 0.8;
+                    cursor: pointer;
+                }}
+                text {{
+                    fill: white;
+                    font-size: 18px;
+                    font-family: Arial, sans-serif;
+                    text-anchor: middle;
+                }}
+            </style>
+
+            <circle cx="250" cy="70" r="40" fill="#555" stroke="#111" stroke-width="3"/>
+
+            <rect class="muscle" x="125" y="125" width="80" height="55" rx="25" fill="{color('shoulders')}"/>
+            <rect class="muscle" x="295" y="125" width="80" height="55" rx="25" fill="{color('shoulders')}"/>
+
+            <rect class="muscle" x="175" y="140" width="70" height="90" rx="20" fill="{color('chest')}"/>
+            <rect class="muscle" x="255" y="140" width="70" height="90" rx="20" fill="{color('chest')}"/>
+
+            <path class="muscle" d="M175 245 Q250 290 325 245 L315 350 Q250 390 185 350 Z" fill="{color('back')}"/>
+
+            <rect class="muscle" x="205" y="245" width="90" height="125" rx="25" fill="{color('abs')}"/>
+            <line x1="250" y1="250" x2="250" y2="360" stroke="#111" stroke-width="3"/>
+            <line x1="210" y1="285" x2="290" y2="285" stroke="#111" stroke-width="3"/>
+            <line x1="210" y1="325" x2="290" y2="325" stroke="#111" stroke-width="3"/>
+
+            <rect class="muscle" x="95" y="190" width="55" height="120" rx="25" fill="{color('biceps')}"/>
+            <rect class="muscle" x="350" y="190" width="55" height="120" rx="25" fill="{color('biceps')}"/>
+
+            <rect class="muscle" x="60" y="210" width="45" height="120" rx="22" fill="{color('triceps')}"/>
+            <rect class="muscle" x="395" y="210" width="45" height="120" rx="22" fill="{color('triceps')}"/>
+
+            <rect class="muscle" x="180" y="390" width="60" height="180" rx="28" fill="{color('legs')}"/>
+            <rect class="muscle" x="260" y="390" width="60" height="180" rx="28" fill="{color('legs')}"/>
+
+            <text x="250" y="625">Muscle groups trained this week</text>
+        </svg>
+        """
+
     @ui.page("/")
     def login_page():
         ui.dark_mode().enable()
 
-        ui.add_head_html('''
+        ui.add_head_html("""
         <style>
             html, body {
                 margin: 0;
@@ -33,47 +98,46 @@ def register_pages(
                 background-attachment: fixed;
             }
         </style>
-        ''')
+        """)
 
         if get_current_user_id() is not None:
             ui.navigate.to("/dashboard")
             return
 
-        with ui.column().classes('login-page w-full h-screen items-center justify-center'):
+        with ui.column().classes("login-page w-full h-screen items-center justify-center"):
             ui.label("Gym Progress Tracker").classes("text-7xl font-bold")
 
             with ui.card().classes("w-full max-w-md").style(
-                'background: #1e1e1e; border-radius: 16px; padding: 30px;'
+                "background: #1e1e1e; border-radius: 16px; padding: 30px;"
             ):
                 ui.label("Login or register to start tracking.").classes("text-gray-600")
                 username = ui.input("Username").props("clearable")
                 password = ui.input("Password", password=True, password_toggle_button=True)
 
-            def do_login():
-                try:
-                    user_id = auth_service.login(username.value or "", password.value or "")
-                    set_current_user_id(user_id)
-                    ui.navigate.to("/dashboard")
-                except ValueError as e:
-                    ui.notify(str(e), type="negative")
+                def do_login():
+                    try:
+                        user_id = auth_service.login(username.value or "", password.value or "")
+                        set_current_user_id(user_id)
+                        ui.navigate.to("/dashboard")
+                    except ValueError as e:
+                        ui.notify(str(e), type="negative")
 
-            with ui.row().classes("gap-2"):
-                ui.button("Login", on_click=do_login).style(
-                    'background: white !important; color: black !important;'
-                )
-                ui.button(
-                    "Register",
-                    on_click=lambda: ui.navigate.to("/register")
-                ).style('background: white !important; color: black !important;')
+                with ui.row().classes("gap-2"):
+                    ui.button("Login", on_click=do_login).style(
+                        "background: white !important; color: black !important;"
+                    )
+                    ui.button("Register", on_click=lambda: ui.navigate.to("/register")).style(
+                        "background: white !important; color: black !important;"
+                    )
 
-            username.on('keydown.enter', lambda e: do_login())
-            password.on('keydown.enter', lambda e: do_login())
+                username.on("keydown.enter", lambda e: do_login())
+                password.on("keydown.enter", lambda e: do_login())
 
-    @ui.page('/register')
+    @ui.page("/register")
     def register_page():
         ui.dark_mode().enable()
 
-        ui.add_head_html('''
+        ui.add_head_html("""
         <style>
             html, body {
                 margin: 0;
@@ -89,36 +153,37 @@ def register_pages(
                 overflow: hidden;
             }
         </style>
-        ''')
+        """)
 
-        with ui.column().classes('register-page w-full items-center justify-center'):
-            with ui.card().classes('w-full max-w-lg shadow-2xl').style(
-                'background: #1e1e1e; border-radius: 16px; padding: 30px;'
+        with ui.column().classes("register-page w-full items-center justify-center"):
+            with ui.card().classes("w-full max-w-lg shadow-2xl").style(
+                "background: #1e1e1e; border-radius: 16px; padding: 30px;"
             ):
-                ui.label('Register').classes('text-2xl font-bold text-white')
-                ui.label('Create an account to start.').classes('text-gray-400')
+                ui.label("Register").classes("text-2xl font-bold text-white")
+                ui.label("Create an account to start.").classes("text-gray-400")
 
-                new_username = ui.input('Username').props('clearable')
-                new_password = ui.input('Password', password=True, password_toggle_button=True)
+                new_username = ui.input("Username").props("clearable")
+                new_password = ui.input("Password", password=True, password_toggle_button=True)
 
-            def do_create_account():
-                try:
-                    user_id = auth_service.register(new_username.value or "", new_password.value or "")
-                    set_current_user_id(user_id)
-                    ui.notify('Register Successful!', type='positive')
-                    ui.navigate.to("/dashboard")
-                except ValueError as e:
-                    ui.notify(str(e), type='negative')
+                def do_create_account():
+                    try:
+                        user_id = auth_service.register(
+                            new_username.value or "",
+                            new_password.value or "",
+                        )
+                        set_current_user_id(user_id)
+                        ui.notify("Register Successful!", type="positive")
+                        ui.navigate.to("/dashboard")
+                    except ValueError as e:
+                        ui.notify(str(e), type="negative")
 
-            with ui.row().classes('gap-2'):
-                ui.button(
-                    'Create Account',
-                    on_click=do_create_account
-                ).style('background: white !important; color: black !important')
-                ui.button(
-                    'Back to Login',
-                    on_click=lambda: ui.navigate.to('/')
-                ).style('background: white !important; color: black !important;')
+                with ui.row().classes("gap-2"):
+                    ui.button("Create Account", on_click=do_create_account).style(
+                        "background: white !important; color: black !important;"
+                    )
+                    ui.button("Back to Login", on_click=lambda: ui.navigate.to("/")).style(
+                        "background: white !important; color: black !important;"
+                    )
 
     @ui.page("/dashboard")
     def dashboard_page():
@@ -126,28 +191,27 @@ def register_pages(
         user_id = require_login()
 
         def show_add_exercise_dialog():
-            with ui.dialog() as dialog, ui.card().classes('p-6 w-full max-w-md'):
+            with ui.dialog() as dialog, ui.card().classes("p-6 w-full max-w-md"):
                 ui.label("Exercises").classes("text-xl font-bold")
-                
-                # List of existing exercises
+
                 exercise_list = ui.column().classes("gap-2 mb-4 border p-3 rounded")
-                
+
                 def refresh_exercise_list():
                     exercise_list.clear()
                     exercises = workout_service.list_exercises(user_id=user_id)
-                    if not exercises:
-                        with exercise_list:
+
+                    with exercise_list:
+                        if not exercises:
                             ui.label("No custom exercises yet.").classes("text-gray-500")
-                    else:
-                        for exercise in exercises:
-                            with exercise_list:
+                        else:
+                            for exercise in exercises:
                                 with ui.row().classes("justify-between items-center w-full"):
                                     ui.label(exercise["name"])
                                     ui.button(
                                         icon="delete",
-                                        on_click=lambda ex_id=exercise["id"]: delete_exercise(ex_id)
+                                        on_click=lambda ex_id=exercise["id"]: delete_exercise(ex_id),
                                     ).props("flat color=negative size=sm")
-                
+
                 def delete_exercise(ex_id):
                     try:
                         workout_service.delete_exercise(ex_id, user_id)
@@ -155,33 +219,32 @@ def register_pages(
                         refresh_exercise_list()
                     except ValueError as e:
                         ui.notify(str(e), type="negative")
-                
-                # Initial load of exercises
+
                 refresh_exercise_list()
-                
-                # Add new exercise section
+
                 ui.label("Add New Exercise").classes("text-md font-semibold mt-4")
                 exercise_name = ui.input("Exercise Name").classes("w-full")
-                
+
                 def add_exercise():
                     try:
-                        if not exercise_name.value.strip():
+                        if not exercise_name.value or not exercise_name.value.strip():
                             ui.notify("Exercise name cannot be empty.", type="warning")
                             return
+
                         workout_service.create_exercise(
                             user_id=user_id,
-                            name=exercise_name.value.strip()
+                            name=exercise_name.value.strip(),
                         )
                         ui.notify("Exercise added!", type="positive")
                         exercise_name.value = ""
                         refresh_exercise_list()
                     except ValueError as e:
                         ui.notify(str(e), type="negative")
-                
-                with ui.row().classes('w-full justify-end gap-2'):
+
+                with ui.row().classes("w-full justify-end gap-2"):
                     ui.button("Close", on_click=dialog.close).props("outline")
                     ui.button("Add", on_click=add_exercise)
-            
+
             dialog.open()
 
         with ui.column().classes("w-full items-center"):
@@ -194,16 +257,15 @@ def register_pages(
                 "margin-top: 30px; "
                 "box-shadow: 0 10px 30px rgba(0,0,0,0.4);"
             ):
-                ui.label("Dashboard").classes("w-full items-center")
+                ui.label("Dashboard").classes("text-3xl font-bold")
 
                 with ui.row().classes("items-center gap-6"):
                     ui.button("New Workout", on_click=lambda: ui.navigate.to("/workout/new"))
                     ui.button("Weekly Summary", on_click=lambda: ui.navigate.to("/week"))
-                    ui.button("Heatmap", on_click=lambda: ui.navigate.to("/heatmap"))
                     ui.button("Exercises", on_click=show_add_exercise_dialog)
                     ui.button(
                         "Logout",
-                        on_click=lambda: (set_current_user_id(None), ui.navigate.to("/"))
+                        on_click=lambda: (set_current_user_id(None), ui.navigate.to("/")),
                     ).props("outline")
 
         ui.separator()
@@ -212,7 +274,9 @@ def register_pages(
         sessions = workout_service.list_sessions(user_id=user_id, limit=14)
 
         if not sessions:
-            ui.label("No workouts yet. Click 'New Workout' to add your first one.").classes("text-gray-600")
+            ui.label("No workouts yet. Click 'New Workout' to add your first one.").classes(
+                "text-gray-600"
+            )
             return
 
         rows = []
@@ -236,14 +300,15 @@ def register_pages(
         def delete_row(ev):
             row_data = ev.args
 
-            with ui.dialog() as dialog, ui.card().classes('p-4'):
-                ui.label(f'Do you want to delete the entry from the {row_data["date"]} ?')
-                with ui.row().classes('w-full justify-end'):
-                    ui.button('Cancel', on_click=lambda: dialog.close()).props('flat')
+            with ui.dialog() as dialog, ui.card().classes("p-4"):
+                ui.label(f'Do you want to delete the entry from {row_data["date"]}?')
+
+                with ui.row().classes("w-full justify-end"):
+                    ui.button("Cancel", on_click=dialog.close).props("flat")
                     ui.button(
-                        'Delete',
+                        "Delete",
                         on_click=lambda: execute_deletion(row_data, dialog),
-                        color='red',
+                        color="red",
                     )
 
             dialog.open()
@@ -255,7 +320,7 @@ def register_pages(
                 dialog.close()
                 ui.navigate.to("/dashboard")
             except Exception as e:
-                ui.notify(f"Fehler: {e}", type="negative")
+                ui.notify(f"Error: {e}", type="negative")
 
         def edit_row(ev):
             row = ev.args
@@ -266,7 +331,7 @@ def register_pages(
 
         table.add_slot(
             "body-cell-actions",
-            r"""
+            """
             <q-td :props="props">
                 <q-btn dense flat icon="edit" @click="$parent.$emit('edit_row', props.row)" />
                 <q-btn dense flat icon="delete" @click="$parent.$emit('delete_row', props.row)" />
@@ -279,7 +344,11 @@ def register_pages(
         ui.dark_mode().enable()
         user_id = require_login()
 
-        session_data = workout_service.get_session_by_id(session_id=session_id, user_id=user_id)
+        session_data = workout_service.get_session_by_id(
+            session_id=session_id,
+            user_id=user_id,
+        )
+
         all_muscles = workout_service.list_muscles()
         all_exercises_list = ["Benchpress", "Deadlift", "Squats", "Lat Pulldown"]
         custom_exercises = workout_service.list_exercises(user_id=user_id)
@@ -289,10 +358,12 @@ def register_pages(
 
         with ui.card().classes("w-full max-w-2xl"):
             workout_date = ui.date(value=session_data["date"].isoformat())
-            notes = ui.textarea("Notes (optional)", value=session_data["notes"] or "").props("autogrow")
+            notes = ui.textarea(
+                "Notes (optional)",
+                value=session_data["notes"] or "",
+            ).props("autogrow")
 
             with ui.row().classes("gap-8 w-full"):
-                # Muscles trained section
                 with ui.column():
                     ui.label("Muscles trained").classes("font-semibold")
 
@@ -304,7 +375,6 @@ def register_pages(
                             cb = ui.checkbox(m["name"], value=(m["id"] in selected_ids))
                             checkboxes.append((m, cb))
 
-                # Exercises & PRs section
                 with ui.column():
                     ui.label("Exercises & PRs (kg)").classes("font-semibold")
                     exercise_inputs = {}
@@ -316,12 +386,18 @@ def register_pages(
                                 pr_input = ui.input(
                                     "PR",
                                     placeholder="kg",
-                                    validation={"Please enter a number": lambda v: v == "" or v.replace(".", "", 1).replace("-", "", 1).isdigit()}
+                                    validation={
+                                        "Please enter a number": lambda v: (
+                                            v == ""
+                                            or v.replace(".", "", 1).replace("-", "", 1).isdigit()
+                                        )
+                                    },
                                 ).props("type=number").style("width: 100px")
                                 exercise_inputs[exercise] = (cb, pr_input)
 
             def save():
                 new_muscle_ids = [m["id"] for (m, cb) in checkboxes if cb.value]
+
                 if not new_muscle_ids:
                     ui.notify("Select at least one muscle group.", type="warning")
                     return
@@ -335,7 +411,6 @@ def register_pages(
                         muscle_ids=new_muscle_ids,
                     )
                     ui.notify("Workout updated!", type="positive")
-                    ui.timer(0.8, lambda: ui.navigate.to("/dashboard"), once=True)
                     ui.navigate.to("/dashboard")
                 except ValueError as e:
                     ui.notify(str(e), type="negative")
@@ -358,8 +433,9 @@ def register_pages(
 
         with ui.card().classes("w-full max-w-2xl"):
             recent_sessions = workout_service.list_sessions(user_id=user_id, limit=10)
+
             template_options = {
-                s['id']: f"{s['date'].strftime('%d.%m.%Y')} - {', '.join(s['muscle_names'])}"
+                s["id"]: f"{s['date'].strftime('%d.%m.%Y')} - {', '.join(s['muscle_names'])}"
                 for s in recent_sessions
             }
 
@@ -369,24 +445,27 @@ def register_pages(
             def load_template(e):
                 if not e.value:
                     return
+
                 details = workout_service.get_session_by_id(e.value, user_id)
-                notes.value = details['notes']
-                selected_muscles = set(details['muscle_ids'])
+                notes.value = details["notes"]
+
+                selected_muscles = set(details["muscle_ids"])
+
                 for m, cb in checkboxes:
-                    cb.value = m['id'] in selected_muscles
-                ui.notify("Template loaded!", type='positive')
+                    cb.value = m["id"] in selected_muscles
+
+                ui.notify("Template loaded!", type="positive")
 
             ui.select(
                 options=template_options,
                 label="Load from past workout...",
                 on_change=load_template,
-                clearable=True
-            ).classes('w-full mb-4')
+                clearable=True,
+            ).classes("w-full mb-4")
 
             workout_date = ui.date(value=date.today().isoformat())
 
             with ui.row().classes("gap-8 w-full"):
-                # Muscles trained section
                 with ui.column():
                     ui.label("Muscles trained").classes("font-semibold")
 
@@ -395,7 +474,6 @@ def register_pages(
                             cb = ui.checkbox(m["name"])
                             checkboxes.append((m, cb))
 
-                # Exercises & PRs section
                 with ui.column():
                     ui.label("Exercises & PRs (kg)").classes("font-semibold")
                     exercise_inputs = {}
@@ -407,12 +485,18 @@ def register_pages(
                                 pr_input = ui.input(
                                     "PR",
                                     placeholder="kg",
-                                    validation={"Please enter a number": lambda v: v == "" or v.replace(".", "", 1).replace("-", "", 1).isdigit()}
+                                    validation={
+                                        "Please enter a number": lambda v: (
+                                            v == ""
+                                            or v.replace(".", "", 1).replace("-", "", 1).isdigit()
+                                        )
+                                    },
                                 ).props("type=number").style("width: 100px")
                                 exercise_inputs[exercise] = (cb, pr_input)
 
             def save():
                 selected_ids = [m["id"] for (m, cb) in checkboxes if cb.value]
+
                 if not selected_ids:
                     ui.notify("Select at least one muscle group.", type="warning")
                     return
@@ -425,7 +509,6 @@ def register_pages(
                         muscle_ids=selected_ids,
                     )
                     ui.notify("Workout saved!", type="positive")
-                    ui.timer(0.8, lambda: ui.navigate.to("/dashboard"), once=True)
                     ui.navigate.to("/dashboard")
                 except ValueError as e:
                     ui.notify(str(e), type="negative")
@@ -439,41 +522,75 @@ def register_pages(
         ui.dark_mode().enable()
         user_id = require_login()
 
-        from datetime import timedelta
-        
-        # Track week offset using a container
         state = {"week_offset": 0}
 
         def get_week_label():
             offset = state["week_offset"]
+
             if offset == 0:
                 return "This Week"
-            elif offset == 1:
+            if offset == 1:
                 return "Last Week"
-            else:
-                return f"{offset} weeks ago"
+
+            return f"{offset} weeks ago"
 
         @ui.refreshable
         def week_display():
             current_day = date.today() - timedelta(weeks=state["week_offset"])
-            result = muscle_map_service.week_summary(user_id=user_id, day_in_week=current_day)
+            result = muscle_map_service.week_summary(
+                user_id=user_id,
+                day_in_week=current_day,
+            )
 
             start_str = result["week_start"].strftime("%d.%m.%Y")
             end_str = result["week_end"].strftime("%d.%m.%Y")
 
-            ui.label(f"Week: {start_str} → {end_str}")
+            ui.label(f"Week: {start_str} → {end_str}").classes("text-lg font-semibold")
             ui.separator()
 
-            if not result["muscles"]:
-                ui.label("No workouts this week yet.").classes("text-gray-600")
-            else:
-                for item in result["muscles"]:
-                    bar = "█" * (item["intensity"] + 1)
-                    ui.label(f"{item['name']}: {item['count']} sessions  {bar}")
+            with ui.element("div").style(
+                "display: flex; "
+                "flex-direction: row; "
+                "gap: 40px; "
+                "align-items: flex-start; "
+                "width: 100%; "
+                "flex-wrap: nowrap;"
+            ):
+    # LEFT SIDE: Summary
+                with ui.column().style(
+                    "width: 35%; "
+                    "min-width: 280px;"
+                ):
+                    ui.label("Summary").classes("text-xl font-bold")
+
+                    if not result["muscles"]:
+                        ui.label("No workouts this week yet.").classes("text-gray-600")
+                    else:
+                        for item in result["muscles"]:
+                            bar = "█" * (item["intensity"] + 1)
+                            ui.label(f"{item['name']}: {item['count']} sessions  {bar}")
+
+    # RIGHT SIDE: Heatmap
+                with ui.column().style(
+                    "width: 65%; "
+                    "align-items: center;"
+                ):
+                    ui.label("Heatmap").classes("text-xl font-bold")
+                    ui.html(build_heatmap_svg(result)).style(
+                        "width: 100%; "
+                        "max-width: 420px;"
+                    )
+
+                    ui.separator()
+
+                    ui.label("Legend").classes("font-semibold")
+                    ui.label("Gray = Not trained")
+                    ui.label("Yellow = 1 training")
+                    ui.label("Orange = 2 trainings")
+                    ui.label("Red = 3+ trainings")
 
         ui.label("Weekly Summary").classes("text-2xl font-bold")
 
-        # Navigation controls
         with ui.row().classes("items-center gap-4 justify-center"):
             def go_previous():
                 state["week_offset"] += 1
@@ -484,155 +601,22 @@ def register_pages(
             def go_next():
                 if state["week_offset"] > 0:
                     state["week_offset"] -= 1
+
                     if state["week_offset"] == 0:
                         next_button.enabled = False
+
                     week_label.text = get_week_label()
                     week_display.refresh()
 
-            prev_button = ui.button(icon="arrow_back", on_click=go_previous).props("round flat")
+            ui.button(icon="arrow_back", on_click=go_previous).props("round flat")
             week_label = ui.label(get_week_label())
             next_button = ui.button(icon="arrow_forward", on_click=go_next).props("round flat")
-            
-            # Disable next button if we're at current week
-            if state["week_offset"] == 0:
-                next_button.enabled = False
+            next_button.enabled = False
 
-        with ui.card().classes("w-full max-w-2xl"):
+        with ui.card().classes("w-full").style("max-width: 1200px;"):
             week_display()
 
         with ui.row().classes("gap-2"):
             ui.button("Back", on_click=lambda: ui.navigate.to("/dashboard"))
-    @ui.page("/heatmap")
-    def heatmap_page():
-        ui.dark_mode().enable()
-        user_id = require_login()
 
-        ui.label("Muscle Heatmap").classes("text-2xl font-bold")
-
-        result = muscle_map_service.week_summary(
-            user_id=user_id,
-            day_in_week=date.today(),
-        )
-
-        trained = {
-            item["name"].lower().replace(" ", ""): item["count"]
-            for item in result["muscles"]
-        }
-
-        def color(muscle: str) -> str:
-            count = trained.get(muscle.lower().replace(" ", ""), 0)
-
-            if count <= 0:
-                return "#3a3a3a"
-            if count == 1:
-                return "#facc15"
-            if count == 2:
-                return "#fb923c"
-            return "#ef4444"
-
-        svg = f"""
-        <svg viewBox="0 0 500 650" width="100%" style="max-width:520px">
-            <style>
-                .muscle {{
-                    stroke: #111;
-                    stroke-width: 3;
-                    transition: 0.2s;
-                }}
-                .muscle:hover {{
-                    opacity: 0.8;
-                    cursor: pointer;
-                }}
-                text {{
-                    fill: white;
-                    font-size: 18px;
-                    font-family: Arial, sans-serif;
-                    text-anchor: middle;
-                }}
-            </style>
-
-            <!-- Head -->
-            <circle cx="250" cy="70" r="40" fill="#555" stroke="#111" stroke-width="3"/>
-
-            <!-- Shoulders -->
-            <rect class="muscle" x="125" y="125" width="80" height="55" rx="25"
-                  fill="{color('shoulders')}">
-                <title>Shoulders</title>
-            </rect>
-            <rect class="muscle" x="295" y="125" width="80" height="55" rx="25"
-                  fill="{color('shoulders')}">
-                <title>Shoulders</title>
-            </rect>
-
-            <!-- Chest -->
-            <rect class="muscle" x="175" y="140" width="70" height="90" rx="20"
-                  fill="{color('chest')}">
-                <title>Chest</title>
-            </rect>
-            <rect class="muscle" x="255" y="140" width="70" height="90" rx="20"
-                  fill="{color('chest')}">
-                <title>Chest</title>
-            </rect>
-
-            <!-- Back -->
-            <path class="muscle" d="M175 245 Q250 290 325 245 L315 350 Q250 390 185 350 Z"
-                  fill="{color('back')}">
-                <title>Back</title>
-            </path>
-
-            <!-- Abs -->
-            <rect class="muscle" x="205" y="245" width="90" height="125" rx="25"
-                  fill="{color('abs')}">
-                <title>Abs</title>
-            </rect>
-            <line x1="250" y1="250" x2="250" y2="360" stroke="#111" stroke-width="3"/>
-            <line x1="210" y1="285" x2="290" y2="285" stroke="#111" stroke-width="3"/>
-            <line x1="210" y1="325" x2="290" y2="325" stroke="#111" stroke-width="3"/>
-
-            <!-- Biceps -->
-            <rect class="muscle" x="95" y="190" width="55" height="120" rx="25"
-                  fill="{color('biceps')}">
-                <title>Biceps</title>
-            </rect>
-            <rect class="muscle" x="350" y="190" width="55" height="120" rx="25"
-                  fill="{color('biceps')}">
-                <title>Biceps</title>
-            </rect>
-
-            <!-- Triceps -->
-            <rect class="muscle" x="60" y="210" width="45" height="120" rx="22"
-                  fill="{color('triceps')}">
-                <title>Triceps</title>
-            </rect>
-            <rect class="muscle" x="395" y="210" width="45" height="120" rx="22"
-                  fill="{color('triceps')}">
-                <title>Triceps</title>
-            </rect>
-
-            <!-- Legs -->
-            <rect class="muscle" x="180" y="390" width="60" height="180" rx="28"
-                  fill="{color('legs')}">
-                <title>Legs</title>
-            </rect>
-            <rect class="muscle" x="260" y="390" width="60" height="180" rx="28"
-                  fill="{color('legs')}">
-                <title>Legs</title>
-            </rect>
-
-            <!-- Labels -->
-            <text x="250" y="625">Muscelgroups trained this week</text>
-        </svg>
-        """
-
-        with ui.card().classes("w-full max-w-2xl items-center"):
-            ui.html(svg)
-
-            ui.separator()
-
-            ui.label("Legende").classes("font-semibold")
-            ui.label("Gray = Not Trained")
-            ui.label("Yellow = 1 Training")
-            ui.label("Orange = 2 Trainings")
-            ui.label("Red = 3+ Trainings")
-
-        with ui.row().classes("gap-2 mt-4"):
-            ui.button("Back", on_click=lambda: ui.navigate.to("/dashboard")).props("outline")
+  

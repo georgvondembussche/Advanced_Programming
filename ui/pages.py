@@ -20,7 +20,6 @@ def register_pages(
 
         def color(muscle: str) -> str:
             count = trained.get(muscle.lower().replace(" ", ""), 0)
-
             if count <= 0:
                 return "#3a3a3a"
             if count == 1:
@@ -77,25 +76,23 @@ def register_pages(
         </svg>
         """
 
+    # ── shared full-page style ──────────────────────────────────────────────
+    FULL_PAGE_STYLE = """
+    <style>
+        html, body, .q-page { margin: 0; padding: 0; height: 100%; overflow: hidden; }
+    </style>
+    """
+
     @ui.page("/")
     def login_page():
         ui.dark_mode().enable()
-
         ui.add_head_html("""
         <style>
-            html, body {
-                margin: 0;
-                padding: 0;
-                height: 100%;
-                overflow: hidden;
-            }
-
+            html, body { margin: 0; padding: 0; height: 100%; overflow: hidden; }
             .login-page {
-                min-height: 100vh;
-                width: 100vw;
+                min-height: 100vh; width: 100vw;
                 background: url("/static/Login_Page1.png") no-repeat center center;
-                background-size: cover;
-                background-attachment: fixed;
+                background-size: cover; background-attachment: fixed;
             }
         </style>
         """)
@@ -136,21 +133,13 @@ def register_pages(
     @ui.page("/register")
     def register_page():
         ui.dark_mode().enable()
-
         ui.add_head_html("""
         <style>
-            html, body {
-                margin: 0;
-                padding: 0;
-                height: 100%;
-                overflow: hidden;
-            }
+            html, body { margin: 0; padding: 0; height: 100%; overflow: hidden; }
             .register-page {
-                min-height: 110vh;
-                width: 100%;
+                min-height: 110vh; width: 100%;
                 background: url("/static/Register_Page2.png") no-repeat center center;
-                background-size: cover;
-                overflow: hidden;
+                background-size: cover; overflow: hidden;
             }
         </style>
         """)
@@ -188,6 +177,7 @@ def register_pages(
     @ui.page("/dashboard")
     def dashboard_page():
         ui.dark_mode().enable()
+        ui.add_head_html(FULL_PAGE_STYLE)
         user_id = require_login()
 
         def show_add_exercise_dialog():
@@ -199,7 +189,6 @@ def register_pages(
                 def refresh_exercise_list():
                     exercise_list.clear()
                     exercises = workout_service.list_exercises(user_id=user_id)
-
                     with exercise_list:
                         if not exercises:
                             ui.label("No custom exercises yet.").classes("text-gray-500")
@@ -230,7 +219,6 @@ def register_pages(
                         if not exercise_name.value or not exercise_name.value.strip():
                             ui.notify("Exercise name cannot be empty.", type="warning")
                             return
-
                         workout_service.create_exercise(
                             user_id=user_id,
                             name=exercise_name.value.strip(),
@@ -247,18 +235,17 @@ def register_pages(
 
             dialog.open()
 
-        with ui.column().classes("w-full items-center"):
+        # ── page layout: fixed header + scrollable table area ──────────────
+        with ui.column().classes("w-full items-center").style("height: 100vh; overflow: hidden;"):
+
+            # Header / nav card — fixed at top, never scrolls away
             with ui.column().style(
-                "max-width: 1100px; "
-                "width: 100%; "
-                "background: #262626; "
-                "border-radius: 20px; "
-                "padding: 30px; "
-                "margin-top: 30px; "
-                "box-shadow: 0 10px 30px rgba(0,0,0,0.4);"
+                "max-width: 1100px; width: 100%; "
+                "background: #262626; border-radius: 20px; "
+                "padding: 20px 30px; margin-top: 20px; "
+                "box-shadow: 0 10px 30px rgba(0,0,0,0.4); flex-shrink: 0;"
             ):
                 ui.label("Dashboard").classes("text-3xl font-bold")
-
                 with ui.row().classes("items-center gap-6"):
                     ui.button("New Workout", on_click=lambda: ui.navigate.to("/workout/new"))
                     ui.button("Weekly Summary", on_click=lambda: ui.navigate.to("/week"))
@@ -268,80 +255,134 @@ def register_pages(
                         on_click=lambda: (set_current_user_id(None), ui.navigate.to("/")),
                     ).props("outline")
 
-        ui.separator()
-        ui.label("Recent Workouts").classes("text-lg font-semibold")
+            # Scrollable area only for the table
+            with ui.column().style(
+                "max-width: 1100px; width: 100%; flex: 1; overflow-y: auto; "
+                "padding: 16px 0 16px 0;"
+            ):
+                ui.label("Recent Workouts").classes("text-lg font-semibold")
 
-        sessions = workout_service.list_sessions(user_id=user_id, limit=14)
+                sessions = workout_service.list_sessions(user_id=user_id, limit=14)
 
-        if not sessions:
-            ui.label("No workouts yet. Click 'New Workout' to add your first one.").classes(
-                "text-gray-600"
-            )
-            return
-
-        rows = []
-        for s in sessions:
-            rows.append({
-                "id": s["id"],
-                "date": s["date"].strftime("%d.%m.%Y"),
-                "muscles": ", ".join(s["muscle_names"]),
-                "notes": s.get("notes") or "",
-            })
-
-        columns = [
-            {"name": "date", "label": "Date", "field": "date", "sortable": True},
-            {"name": "muscles", "label": "Muscles", "field": "muscles"},
-            {"name": "notes", "label": "Notes", "field": "notes"},
-            {"name": "actions", "label": "Actions", "field": "actions"},
-        ]
-
-        table = ui.table(columns=columns, rows=rows, row_key="id").classes("w-full")
-
-        def delete_row(ev):
-            row_data = ev.args
-
-            with ui.dialog() as dialog, ui.card().classes("p-4"):
-                ui.label(f'Do you want to delete the entry from {row_data["date"]}?')
-
-                with ui.row().classes("w-full justify-end"):
-                    ui.button("Cancel", on_click=dialog.close).props("flat")
-                    ui.button(
-                        "Delete",
-                        on_click=lambda: execute_deletion(row_data, dialog),
-                        color="red",
+                if not sessions:
+                    ui.label("No workouts yet. Click 'New Workout' to add your first one.").classes(
+                        "text-gray-600"
                     )
+                    return
 
-            dialog.open()
+                rows = []
+                for s in sessions:
+                    rows.append({
+                        "id": s["id"],
+                        "date": s["date"].strftime("%d.%m.%Y"),
+                        "muscles": ", ".join(s["muscle_names"]),
+                        "notes": s.get("notes") or "",
+                    })
 
-        def execute_deletion(row, dialog):
-            try:
-                workout_service.delete_session(session_id=row["id"], user_id=user_id)
-                ui.notify("Workout deleted", type="positive")
-                dialog.close()
-                ui.navigate.to("/dashboard")
-            except Exception as e:
-                ui.notify(f"Error: {e}", type="negative")
+                columns = [
+                    {"name": "date", "label": "Date", "field": "date", "sortable": True},
+                    {"name": "muscles", "label": "Muscles", "field": "muscles"},
+                    {"name": "notes", "label": "Notes", "field": "notes"},
+                    {"name": "actions", "label": "Actions", "field": "actions"},
+                ]
 
-        def edit_row(ev):
-            row = ev.args
-            ui.navigate.to(f"/workout/edit/{row['id']}")
+                table = ui.table(columns=columns, rows=rows, row_key="id").classes("w-full")
 
-        table.on("edit_row", edit_row)
-        table.on("delete_row", delete_row)
+                def delete_row(ev):
+                    row_data = ev.args
+                    with ui.dialog() as dialog, ui.card().classes("p-4"):
+                        ui.label(f'Do you want to delete the entry from {row_data["date"]}?')
+                        with ui.row().classes("w-full justify-end"):
+                            ui.button("Cancel", on_click=dialog.close).props("flat")
+                            ui.button(
+                                "Delete",
+                                on_click=lambda: execute_deletion(row_data, dialog),
+                                color="red",
+                            )
+                    dialog.open()
 
-        table.add_slot(
-            "body-cell-actions",
-            """
-            <q-td :props="props">
-                <q-btn dense flat icon="edit" @click="$parent.$emit('edit_row', props.row)" />
-                <q-btn dense flat icon="delete" @click="$parent.$emit('delete_row', props.row)" />
-            </q-td>
-            """,
+                def execute_deletion(row, dialog):
+                    try:
+                        workout_service.delete_session(session_id=row["id"], user_id=user_id)
+                        ui.notify("Workout deleted", type="positive")
+                        dialog.close()
+                        ui.navigate.to("/dashboard")
+                    except Exception as e:
+                        ui.notify(f"Error: {e}", type="negative")
+
+                def edit_row(ev):
+                    row = ev.args
+                    ui.navigate.to(f"/workout/edit/{row['id']}")
+
+                table.on("edit_row", edit_row)
+                table.on("delete_row", delete_row)
+                table.add_slot(
+                    "body-cell-actions",
+                    """
+                    <q-td :props="props">
+                        <q-btn dense flat icon="edit" @click="$parent.$emit('edit_row', props.row)" />
+                        <q-btn dense flat icon="delete" @click="$parent.$emit('delete_row', props.row)" />
+                    </q-td>
+                    """,
+                )
+
+    # ── shared helper: builds the muscles + exercises columns ──────────────
+    def _build_workout_form(
+        user_id: int,
+        workout_service,
+        notes_value: str = "",
+        selected_muscle_ids: set | None = None,
+    ):
+        """Returns (workout_date_widget, notes_widget, checkboxes, exercise_inputs)."""
+        selected_muscle_ids = selected_muscle_ids or set()
+
+        all_muscles = workout_service.list_muscles()
+        all_exercises_list = ["Benchpress", "Deadlift", "Squats", "Lat Pulldown"]
+        custom_exercises = workout_service.list_exercises(user_id=user_id)
+        all_exercises_list.extend([e["name"] for e in custom_exercises])
+
+        workout_date = ui.input("Date", value=date.today().isoformat()).props("type=date")
+        notes = ui.textarea("Notes (optional)", value=notes_value).props("autogrow").style(
+            "max-height: 80px; overflow-y: auto;"
         )
+
+        checkboxes: list = []
+        exercise_inputs: dict = {}
+
+        with ui.row().classes("gap-8 w-full").style("overflow-y: auto; flex: 1;"):
+            # Muscles column — scrollable if many
+            with ui.column().style("width: 35%; overflow-y: auto; max-height: 55vh;"):
+                ui.label("Muscles trained").classes("font-semibold")
+                with ui.column().classes("gap-1"):
+                    for m in all_muscles:
+                        cb = ui.checkbox(m["name"], value=(m["id"] in selected_muscle_ids))
+                        checkboxes.append((m, cb))
+
+            # Exercises column — scrollable if many
+            with ui.column().style("width: 65%; overflow-y: auto; max-height: 55vh;"):
+                ui.label("Exercises & PRs (kg)").classes("font-semibold")
+                with ui.column().classes("gap-3"):
+                    for exercise in all_exercises_list:
+                        with ui.row().classes("gap-2 items-center"):
+                            cb = ui.checkbox(exercise)
+                            pr_input = ui.input(
+                                "PR",
+                                placeholder="kg",
+                                validation={
+                                    "Please enter a number": lambda v: (
+                                        v == ""
+                                        or v.replace(".", "", 1).replace("-", "", 1).isdigit()
+                                    )
+                                },
+                            ).props("type=number").style("width: 100px")
+                            exercise_inputs[exercise] = (cb, pr_input)
+
+        return workout_date, notes, checkboxes, exercise_inputs
 
     @ui.page("/workout/edit/{session_id}")
     def edit_workout_page(session_id: int):
         ui.dark_mode().enable()
+        ui.add_head_html(FULL_PAGE_STYLE)
         user_id = require_login()
 
         session_data = workout_service.get_session_by_id(
@@ -349,189 +390,182 @@ def register_pages(
             user_id=user_id,
         )
 
-        all_muscles = workout_service.list_muscles()
-        all_exercises_list = ["Benchpress", "Deadlift", "Squats", "Lat Pulldown"]
-        custom_exercises = workout_service.list_exercises(user_id=user_id)
-        all_exercises_list.extend([e["name"] for e in custom_exercises])
+        # ── fixed-height page, nothing overflows the viewport ──────────────
+        with ui.column().classes("w-full items-center").style(
+            "height: 100vh; overflow: hidden; padding: 16px;"
+        ):
+            with ui.card().classes("w-full max-w-2xl").style(
+                "height: 100%; display: flex; flex-direction: column; overflow: hidden;"
+            ):
+                # Header — never scrolls away
+                with ui.row().classes("items-center justify-between w-full").style("flex-shrink: 0;"):
+                    ui.label("Edit Workout").classes("text-2xl font-bold")
+                    with ui.row().classes("gap-2"):
+                        ui.button("Cancel", on_click=lambda: ui.navigate.to("/dashboard")).props("outline")
 
-        ui.label("Edit Workout").classes("text-2xl font-bold")
+                ui.separator().style("flex-shrink: 0;")
 
-        with ui.card().classes("w-full max-w-2xl"):
-            workout_date = ui.date(value=session_data["date"].isoformat())
-            notes = ui.textarea(
-                "Notes (optional)",
-                value=session_data["notes"] or "",
-            ).props("autogrow")
-
-            with ui.row().classes("gap-8 w-full"):
-                with ui.column():
-                    ui.label("Muscles trained").classes("font-semibold")
-
-                    selected_ids = set(session_data["muscle_ids"])
-                    checkboxes = []
-
-                    with ui.column().classes("gap-1"):
-                        for m in all_muscles:
-                            cb = ui.checkbox(m["name"], value=(m["id"] in selected_ids))
-                            checkboxes.append((m, cb))
-
-                with ui.column():
-                    ui.label("Exercises & PRs (kg)").classes("font-semibold")
-                    exercise_inputs = {}
-
-                    with ui.column().classes("gap-3"):
-                        for exercise in all_exercises_list:
-                            with ui.row().classes("gap-2 items-center"):
-                                cb = ui.checkbox(exercise)
-                                pr_input = ui.input(
-                                    "PR",
-                                    placeholder="kg",
-                                    validation={
-                                        "Please enter a number": lambda v: (
-                                            v == ""
-                                            or v.replace(".", "", 1).replace("-", "", 1).isdigit()
-                                        )
-                                    },
-                                ).props("type=number").style("width: 100px")
-                                exercise_inputs[exercise] = (cb, pr_input)
-
-            def save():
-                new_muscle_ids = [m["id"] for (m, cb) in checkboxes if cb.value]
-
-                if not new_muscle_ids:
-                    ui.notify("Select at least one muscle group.", type="warning")
-                    return
-
-                try:
-                    workout_service.update_session(
-                        session_id=session_id,
+                # Scrollable form body
+                with ui.column().style("flex: 1; overflow-y: auto; padding: 8px 0;"):
+                    workout_date, notes, checkboxes, exercise_inputs = _build_workout_form(
                         user_id=user_id,
-                        workout_date=date.fromisoformat(str(workout_date.value).replace("/", "-")),
-                        notes=notes.value,
-                        muscle_ids=new_muscle_ids,
+                        workout_service=workout_service,
+                        notes_value=session_data["notes"] or "",
+                        selected_muscle_ids=set(session_data["muscle_ids"]),
                     )
-                    ui.notify("Workout updated!", type="positive")
-                    ui.navigate.to("/dashboard")
-                except ValueError as e:
-                    ui.notify(str(e), type="negative")
+                    # Override date to session date
+                    workout_date.value = session_data["date"].isoformat()
 
-            with ui.row().classes("gap-2"):
-                ui.button("Save Changes", on_click=save)
-                ui.button("Cancel", on_click=lambda: ui.navigate.to("/dashboard")).props("outline")
+                # Footer buttons — pinned at bottom
+                ui.separator().style("flex-shrink: 0;")
+                with ui.row().classes("gap-2 justify-end").style("flex-shrink: 0; padding-top: 8px;"):
+                    def save():
+                        new_muscle_ids = [m["id"] for (m, cb) in checkboxes if cb.value]
+                        if not new_muscle_ids:
+                            ui.notify("Select at least one muscle group.", type="warning")
+                            return
+                        try:
+                            workout_service.update_session(
+                                session_id=session_id,
+                                user_id=user_id,
+                                workout_date=date.fromisoformat(
+                                    str(workout_date.value).replace("/", "-")
+                                ),
+                                notes=notes.value,
+                                muscle_ids=new_muscle_ids,
+                            )
+                            ui.notify("Workout updated!", type="positive")
+                            ui.navigate.to("/dashboard")
+                        except ValueError as e:
+                            ui.notify(str(e), type="negative")
+
+                    ui.button("Save Changes", on_click=save)
+                    ui.button("Cancel", on_click=lambda: ui.navigate.to("/dashboard")).props("outline")
 
     @ui.page("/workout/new")
     def new_workout_page():
         ui.dark_mode().enable()
+        ui.add_head_html(FULL_PAGE_STYLE)
         user_id = require_login()
-
-        ui.label("New Workout").classes("text-2xl font-bold")
 
         all_muscles = workout_service.list_muscles()
         all_exercises_list = ["Benchpress", "Deadlift", "Squats", "Lat Pulldown"]
         custom_exercises = workout_service.list_exercises(user_id=user_id)
         all_exercises_list.extend([e["name"] for e in custom_exercises])
 
-        with ui.card().classes("w-full max-w-2xl"):
-            recent_sessions = workout_service.list_sessions(user_id=user_id, limit=10)
+        recent_sessions = workout_service.list_sessions(user_id=user_id, limit=10)
+        template_options = {
+            s["id"]: f"{s['date'].strftime('%d.%m.%Y')} - {', '.join(s['muscle_names'])}"
+            for s in recent_sessions
+        }
 
-            template_options = {
-                s["id"]: f"{s['date'].strftime('%d.%m.%Y')} - {', '.join(s['muscle_names'])}"
-                for s in recent_sessions
-            }
+        with ui.column().classes("w-full items-center").style(
+            "height: 100vh; overflow: hidden; padding: 16px;"
+        ):
+            with ui.card().classes("w-full max-w-2xl").style(
+                "height: 100%; display: flex; flex-direction: column; overflow: hidden;"
+            ):
+                # Header
+                ui.label("New Workout").classes("text-2xl font-bold").style("flex-shrink: 0;")
+                ui.separator().style("flex-shrink: 0;")
 
-            checkboxes = []
-            notes = ui.textarea("Notes (optional)").props("autogrow")
+                # Template loader — always visible, never scrolls away
+                with ui.column().style("flex-shrink: 0; padding-bottom: 8px;"):
+                    def load_template(e):
+                        if not e.value:
+                            return
+                        details = workout_service.get_session_by_id(e.value, user_id)
+                        notes_widget.value = details["notes"] or ""
+                        selected_muscles = set(details["muscle_ids"])
+                        for m, cb in muscle_checkboxes:
+                            cb.value = m["id"] in selected_muscles
+                        ui.notify("Template loaded!", type="positive")
 
-            def load_template(e):
-                if not e.value:
-                    return
+                    ui.select(
+                        options=template_options,
+                        label="Load from past workout...",
+                        on_change=load_template,
+                        clearable=True,
+                    ).classes("w-full")
 
-                details = workout_service.get_session_by_id(e.value, user_id)
-                notes.value = details["notes"]
+                workout_date = ui.input("Date", value=date.today().isoformat()).props(
+                    "type=date"
+                ).style("flex-shrink: 0;")
+                notes_widget = ui.textarea("Notes (optional)").props("autogrow").style(
+                    "flex-shrink: 0; max-height: 80px; overflow-y: auto;"
+                )
 
-                selected_muscles = set(details["muscle_ids"])
+                # Scrollable two-column form
+                muscle_checkboxes: list = []
+                exercise_inputs: dict = {}
 
-                for m, cb in checkboxes:
-                    cb.value = m["id"] in selected_muscles
+                with ui.row().classes("gap-8 w-full").style("flex: 1; overflow: hidden;"):
+                    # Left: muscles
+                    with ui.column().style("width: 35%; overflow-y: auto; max-height: 100%;"):
+                        ui.label("Muscles trained").classes("font-semibold")
+                        with ui.column().classes("gap-1"):
+                            for m in all_muscles:
+                                cb = ui.checkbox(m["name"])
+                                muscle_checkboxes.append((m, cb))
 
-                ui.notify("Template loaded!", type="positive")
+                    # Right: exercises — fully interactive, each row has checkbox + PR input
+                    with ui.column().style("width: 65%; overflow-y: auto; max-height: 100%;"):
+                        ui.label("Exercises & PRs (kg)").classes("font-semibold")
+                        with ui.column().classes("gap-3"):
+                            for exercise in all_exercises_list:
+                                with ui.row().classes("gap-2 items-center"):
+                                    cb = ui.checkbox(exercise)
+                                    pr_input = ui.input(
+                                        "PR",
+                                        placeholder="kg",
+                                        validation={
+                                            "Please enter a number": lambda v: (
+                                                v == ""
+                                                or v.replace(".", "", 1).replace("-", "", 1).isdigit()
+                                            )
+                                        },
+                                    ).props("type=number").style("width: 100px")
+                                    exercise_inputs[exercise] = (cb, pr_input)
 
-            ui.select(
-                options=template_options,
-                label="Load from past workout...",
-                on_change=load_template,
-                clearable=True,
-            ).classes("w-full mb-4")
+                # Footer — always visible
+                ui.separator().style("flex-shrink: 0;")
+                with ui.row().classes("gap-2 justify-end").style("flex-shrink: 0; padding-top: 8px;"):
+                    def save():
+                        selected_ids = [m["id"] for (m, cb) in muscle_checkboxes if cb.value]
+                        if not selected_ids:
+                            ui.notify("Select at least one muscle group.", type="warning")
+                            return
+                        try:
+                            workout_service.create_session(
+                                user_id=user_id,
+                                workout_date=date.fromisoformat(
+                                    str(workout_date.value).replace("/", "-")
+                                ),
+                                notes=notes_widget.value,
+                                muscle_ids=selected_ids,
+                            )
+                            ui.notify("Workout saved!", type="positive")
+                            ui.navigate.to("/dashboard")
+                        except ValueError as e:
+                            ui.notify(str(e), type="negative")
 
-            workout_date = ui.date(value=date.today().isoformat())
-
-            with ui.row().classes("gap-8 w-full"):
-                with ui.column():
-                    ui.label("Muscles trained").classes("font-semibold")
-
-                    with ui.column().classes("gap-1"):
-                        for m in all_muscles:
-                            cb = ui.checkbox(m["name"])
-                            checkboxes.append((m, cb))
-
-                with ui.column():
-                    ui.label("Exercises & PRs (kg)").classes("font-semibold")
-                    exercise_inputs = {}
-
-                    with ui.column().classes("gap-3"):
-                        for exercise in all_exercises_list:
-                            with ui.row().classes("gap-2 items-center"):
-                                cb = ui.checkbox(exercise)
-                                pr_input = ui.input(
-                                    "PR",
-                                    placeholder="kg",
-                                    validation={
-                                        "Please enter a number": lambda v: (
-                                            v == ""
-                                            or v.replace(".", "", 1).replace("-", "", 1).isdigit()
-                                        )
-                                    },
-                                ).props("type=number").style("width: 100px")
-                                exercise_inputs[exercise] = (cb, pr_input)
-
-            def save():
-                selected_ids = [m["id"] for (m, cb) in checkboxes if cb.value]
-
-                if not selected_ids:
-                    ui.notify("Select at least one muscle group.", type="warning")
-                    return
-
-                try:
-                    workout_service.create_session(
-                        user_id=user_id,
-                        workout_date=date.fromisoformat(str(workout_date.value).replace("/", "-")),
-                        notes=notes.value,
-                        muscle_ids=selected_ids,
-                    )
-                    ui.notify("Workout saved!", type="positive")
-                    ui.navigate.to("/dashboard")
-                except ValueError as e:
-                    ui.notify(str(e), type="negative")
-
-            with ui.row().classes("gap-2"):
-                ui.button("Save Workout", on_click=save).props("outline")
-                ui.button("Cancel", on_click=lambda: ui.navigate.to("/dashboard")).props("outline")
+                    ui.button("Save Workout", on_click=save)
+                    ui.button("Cancel", on_click=lambda: ui.navigate.to("/dashboard")).props("outline")
 
     @ui.page("/week")
     def week_view_page():
         ui.dark_mode().enable()
+        ui.add_head_html(FULL_PAGE_STYLE)
         user_id = require_login()
 
         state = {"week_offset": 0}
 
         def get_week_label():
             offset = state["week_offset"]
-
             if offset == 0:
                 return "This Week"
             if offset == 1:
                 return "Last Week"
-
             return f"{offset} weeks ago"
 
         @ui.refreshable
@@ -545,78 +579,85 @@ def register_pages(
             start_str = result["week_start"].strftime("%d.%m.%Y")
             end_str = result["week_end"].strftime("%d.%m.%Y")
 
-            ui.label(f"Week: {start_str} → {end_str}").classes("text-lg font-semibold")
+            ui.label(f"Week: {start_str} \u2192 {end_str}").classes("text-lg font-semibold")
             ui.separator()
 
             with ui.element("div").style(
-                "display: flex; "
-                "flex-direction: row; "
-                "gap: 40px; "
-                "align-items: flex-start; "
-                "width: 100%; "
-                "flex-wrap: nowrap;"
+                "display: flex; flex-direction: row; gap: 24px; "
+                "width: 100%; flex: 1; overflow: hidden;"
             ):
-    # LEFT SIDE: Summary
-                with ui.column().style(
-                    "width: 35%; "
-                    "min-width: 280px;"
+                # LEFT: Summary (top) + Legend (bottom)
+                with ui.element("div").style(
+                    "width: 25%; min-width: 180px; display: flex; flex-direction: column; "
+                    "gap: 16px; overflow-y: auto;"
                 ):
-                    ui.label("Summary").classes("text-xl font-bold")
-
-                    if not result["muscles"]:
-                        ui.label("No workouts this week yet.").classes("text-gray-600")
-                    else:
-                        for item in result["muscles"]:
-                            bar = "█" * (item["intensity"] + 1)
-                            ui.label(f"{item['name']}: {item['count']} sessions  {bar}")
-
-    # RIGHT SIDE: Heatmap
-                with ui.column().style(
-                    "width: 65%; "
-                    "align-items: center;"
-                ):
-                    ui.label("Heatmap").classes("text-xl font-bold")
-                    ui.html(build_heatmap_svg(result)).style(
-                        "width: 100%; "
-                        "max-width: 420px;"
-                    )
+                    with ui.column().classes("gap-1"):
+                        ui.label("Summary").classes("text-xl font-bold")
+                        if not result["muscles"]:
+                            ui.label("No workouts this week yet.").classes("text-gray-600")
+                        else:
+                            for item in result["muscles"]:
+                                ui.label(f"{item['name']}: {item['count']} sessions").style(
+                                    "font-size: 13px;"
+                                )
 
                     ui.separator()
 
-                    ui.label("Legend").classes("font-semibold")
-                    ui.label("Gray = Not trained")
-                    ui.label("Yellow = 1 training")
-                    ui.label("Orange = 2 trainings")
-                    ui.label("Red = 3+ trainings")
+                    with ui.column().classes("gap-1"):
+                        ui.label("Legend").classes("font-semibold")
+                        for dot, text in [
+                            ("\U0001f532", "Not trained"),
+                            ("\U0001f7e1", "1 training"),
+                            ("\U0001f7e0", "2 trainings"),
+                            ("\U0001f534", "3+ trainings"),
+                        ]:
+                            ui.label(f"{dot}  {text}").style("font-size: 13px;")
 
-        ui.label("Weekly Summary").classes("text-2xl font-bold")
+                # RIGHT: Big heatmap
+                with ui.element("div").style(
+                    "flex: 1; display: flex; align-items: center; justify-content: center; "
+                    "overflow: hidden;"
+                ):
+                    ui.html(build_heatmap_svg(result)).style(
+                        "width: 100%; height: 100%; max-height: 72vh; "
+                        "display: flex; align-items: center; justify-content: center;"
+                    )
 
-        with ui.row().classes("items-center gap-4 justify-center"):
-            def go_previous():
-                state["week_offset"] += 1
-                next_button.enabled = True
-                week_label.text = get_week_label()
-                week_display.refresh()
+        # ── page shell: fixed header + nav + scrollable content ────────────
+        with ui.column().classes("w-full items-center").style(
+            "height: 100vh; overflow: hidden; padding: 16px; gap: 8px;"
+        ):
+            # Title + week navigation — always visible at top
+            with ui.row().classes("items-center gap-4 justify-between w-full").style(
+                "max-width: 1200px; flex-shrink: 0;"
+            ):
+                ui.label("Weekly Summary").classes("text-2xl font-bold")
 
-            def go_next():
-                if state["week_offset"] > 0:
-                    state["week_offset"] -= 1
+                with ui.row().classes("items-center gap-2"):
+                    def go_previous():
+                        state["week_offset"] += 1
+                        next_button.enabled = True
+                        week_label.text = get_week_label()
+                        week_display.refresh()
 
-                    if state["week_offset"] == 0:
-                        next_button.enabled = False
+                    def go_next():
+                        if state["week_offset"] > 0:
+                            state["week_offset"] -= 1
+                            if state["week_offset"] == 0:
+                                next_button.enabled = False
+                            week_label.text = get_week_label()
+                            week_display.refresh()
 
-                    week_label.text = get_week_label()
-                    week_display.refresh()
+                    ui.button(icon="arrow_back", on_click=go_previous).props("round flat")
+                    week_label = ui.label(get_week_label())
+                    next_button = ui.button(icon="arrow_forward", on_click=go_next).props("round flat")
+                    next_button.enabled = False
 
-            ui.button(icon="arrow_back", on_click=go_previous).props("round flat")
-            week_label = ui.label(get_week_label())
-            next_button = ui.button(icon="arrow_forward", on_click=go_next).props("round flat")
-            next_button.enabled = False
+                ui.button("Back", on_click=lambda: ui.navigate.to("/dashboard")).props("outline")
 
-        with ui.card().classes("w-full").style("max-width: 1200px;"):
-            week_display()
-
-        with ui.row().classes("gap-2"):
-            ui.button("Back", on_click=lambda: ui.navigate.to("/dashboard"))
-
-  
+            # Content card — fills remaining space, no outer scroll
+            with ui.card().classes("w-full").style(
+                "max-width: 1200px; flex: 1; overflow: hidden; display: flex; flex-direction: column;"
+            ):
+                with ui.column().style("flex: 1; overflow: hidden;"):
+                    week_display()

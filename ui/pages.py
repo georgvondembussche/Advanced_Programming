@@ -481,6 +481,7 @@ def register_pages(
                             cb.value = m["id"] in selected_muscles
                         ui.notify("Template loaded!", type="positive")
 
+                    ui.label("Load from recent workouts").classes("font-semibold")
                     ui.select(
                         options=template_options,
                         label="Load from past workout...",
@@ -583,7 +584,7 @@ def register_pages(
             ui.separator()
 
             with ui.element("div").style(
-                "display: flex; flex-direction: row; gap: 24px; "
+                "display: flex; flex-direction: row; gap: 24px;"
                 "width: 100%; flex: 1; overflow: hidden;"
             ):
                 # LEFT: Summary (top) + Legend (bottom)
@@ -615,12 +616,13 @@ def register_pages(
 
                 # RIGHT: Big heatmap
                 with ui.element("div").style(
-                    "flex: 1; display: flex; align-items: center; justify-content: center; "
-                    "overflow: hidden;"
+                    "display: flex; align-items: center; justify-content: flex-end; "
+                    "overflow: hidden; flex: 1; padding-right: 10px; margin-left: 300px;"
                 ):
                     ui.html(build_heatmap_svg(result)).style(
-                        "width: 100%; height: 100%; max-height: 72vh; "
-                        "display: flex; align-items: center; justify-content: center;"
+                        "width: 200%; max-width: 1700px; height: 200%; max-height: 95vh; "
+                        "display: flex; align-items: center; justify-content: center; "
+                        "transform: scale(1.3);"
                     )
 
         # ── page shell: fixed header + nav + scrollable content ────────────
@@ -628,12 +630,14 @@ def register_pages(
             "height: 100vh; overflow: hidden; padding: 16px; gap: 8px;"
         ):
             # Title + week navigation — always visible at top
-            with ui.row().classes("items-center gap-4 justify-between w-full").style(
-                "max-width: 1200px; flex-shrink: 0;"
+            with ui.element("div").style(
+                "display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; "
+                "gap: 16px; width: 100%; max-width: 1200px; flex-shrink: 0;"
             ):
-                ui.label("Weekly Summary").classes("text-2xl font-bold")
+                with ui.element("div").style("justify-self: start;"):
+                    ui.label("Weekly Summary").classes("text-2xl font-bold")
 
-                with ui.row().classes("items-center gap-2"):
+                with ui.row().classes("items-center gap-2").style("justify-self: center;"):
                     def go_previous():
                         state["week_offset"] += 1
                         next_button.enabled = True
@@ -653,7 +657,8 @@ def register_pages(
                     next_button = ui.button(icon="arrow_forward", on_click=go_next).props("round flat")
                     next_button.enabled = False
 
-                ui.button("Back", on_click=lambda: ui.navigate.to("/dashboard")).props("outline")
+                with ui.element("div").style("justify-self: end;"):
+                    ui.button("Back", on_click=lambda: ui.navigate.to("/dashboard")).props("outline")
 
             # Content card — fills remaining space, no outer scroll
             with ui.card().classes("w-full").style(

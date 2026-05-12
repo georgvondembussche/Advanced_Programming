@@ -250,6 +250,7 @@ def register_pages(
                     ui.button("New Workout", on_click=lambda: ui.navigate.to("/workout/new"))
                     ui.button("Weekly Summary", on_click=lambda: ui.navigate.to("/week"))
                     ui.button("Exercises", on_click=show_add_exercise_dialog)
+                    ui.button("PR Tracker", on_click=lambda: ui.navigate.to("/pr-tracker"))
                     ui.button(
                         "Logout",
                         on_click=lambda: (set_current_user_id(None), ui.navigate.to("/")),
@@ -666,3 +667,9 @@ def register_pages(
             ):
                 with ui.column().style("flex: 1; overflow: hidden;"):
                     week_display()
+        
+    @ui.page("/pr-tracker")
+    def pr_tracker_page():
+        ui.dark_mode().enable()
+        ui.add_head_html(FULL_PAGE_STYLE)
+        user_id = require_login()

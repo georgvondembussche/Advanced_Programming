@@ -2,13 +2,13 @@
 
 # Gym Progress Tracker 
 
-A browser-based gym tracking app built with **Python + NiceGUI**.  
-Users can log workouts (sets, reps and weight), track progress over time and visualize which muscle groups they trained in the current week using a **muscle heatmap**.
+A browser-based gym tracking app built with Python + NiceGUI.  
+Users can log workouts (reps and weight), track progress over time and visualize which muscle groups they trained in the current week using a muscle heatmap.
 
 ---
 
 ## Problem
-Many gymrats have problems with tracking their progress in numbers and muscles. Everyone has taken progress pictures before but only a few actually write down how much they lift in numbers (sets, reps and weight). With these methods many people dont use their full potential and lose time and resources during the process.
+Many gymrats have problems with tracking their progress in numbers and muscles. Everyone has taken progress pictures before but only a few actually write down how much they lift in numbers (reps and weight). With these methods many people dont use their full potential and lose time and resources during the process.
 
 ---
 
@@ -26,7 +26,7 @@ Build a simple but powerful web app that enables users to:
 - **Workout logging**: date, exercises, sets (weight, reps)
 - **Exercise library**: create/edit exercises
 - **Progress tracking**:
-  - per exercise: best set, max weight 1RM, volume trend
+  - per exercise: best set, max weight (one repetition), volume trend
   - per week: total sessions (also rest and cheat days)
 - **Muscle heatmap** (weekly):
   - body figure highlights muscle groups trained this week

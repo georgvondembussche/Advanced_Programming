@@ -275,4 +275,46 @@ class WorkoutService:
             
             session.delete(exercise)
             session.commit()
+            
+# ---- Personal Records ----
+    def save_pr(self, user_id: int, exercise_name: str, weight_kg: float, recorded_date: date) -> None:
+        from models.personal_record import PersonalRecord
+        with get_session() as session:
+            existing = (
+                session.query(PersonalRecord)
+                .filter(
+                    PersonalRecord.user_id == user_id,
+                    PersonalRecord.exercise_name == exercise_name,
+                )
+                .order_by(PersonalRecord.weight_kg.desc())
+                .first()
+            )
+            if existing is None or weight_kg > existing.weight_kg:
+                pr = PersonalRecord(
+                    user_id=user_id,
+                    exercise_name=exercise_name,
+                    weight_kg=weight_kg,
+                    recorded_date=recorded_date,
+                )
+                session.add(pr)
+                session.commit()
+
+    def get_best_prs(self, user_id: int) -> list[dict]:
+        from models.personal_record import PersonalRecord
+        with get_session() as session:
+            records = (
+                session.query(PersonalRecord)
+                .filter(PersonalRecord.user_id == user_id)
+                .order_by(PersonalRecord.exercise_name.asc())
+                .all()
+            )
+            seen = {}
+            for r in records:
+                if r.exercise_name not in seen or r.weight_kg > seen[r.exercise_name]["weight_kg"]:
+                    seen[r.exercise_name] = {
+                        "exercise": r.exercise_name,
+                        "weight_kg": r.weight_kg,
+                        "date": r.recorded_date,
+                    }
+            return list(seen.values())
     

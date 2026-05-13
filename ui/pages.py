@@ -538,14 +538,29 @@ def register_pages(
                             ui.notify("Select at least one muscle group.", type="warning")
                             return
                         try:
+                            workout_date_val = date.fromisoformat(
+                                str(workout_date.value).replace("/", "-")
+                            )
                             workout_service.create_session(
                                 user_id=user_id,
-                                workout_date=date.fromisoformat(
-                                    str(workout_date.value).replace("/", "-")
-                                ),
+                                workout_date=workout_date_val,
                                 notes=notes_widget.value,
                                 muscle_ids=selected_ids,
                             )
+                            # PRs speichern
+                            for exercise_name, (cb, pr_input) in exercise_inputs.items():
+                                if cb.value and pr_input.value:
+                                    try:
+                                        weight = float(pr_input.value)
+                                        if weight > 0:
+                                            workout_service.save_pr(
+                                                user_id=user_id,
+                                                exercise_name=exercise_name,
+                                                weight_kg=weight,
+                                                recorded_date=workout_date_val,
+                                            )
+                                    except ValueError:
+                                        pass
                             ui.notify("Workout saved!", type="positive")
                             ui.navigate.to("/dashboard")
                         except ValueError as e:
@@ -673,3 +688,37 @@ def register_pages(
         ui.dark_mode().enable()
         ui.add_head_html(FULL_PAGE_STYLE)
         user_id = require_login()
+
+        with ui.column().classes("w-full items-center").style(
+            "height: 100vh; overflow: hidden; padding: 16px; gap: 12px;"
+        ):
+            with ui.row().classes("items-center justify-between w-full").style(
+                "max-width: 900px; flex-shrink: 0;"
+            ):
+                ui.label("PR Tracker").classes("text-3xl font-bold")
+                ui.button("Back", on_click=lambda: ui.navigate.to("/dashboard")).props("outline")
+
+            with ui.card().classes("w-full").style(
+                "max-width: 900px; flex: 1; overflow-y: auto;"
+            ):
+                best_prs = workout_service.get_best_prs(user_id=user_id)
+
+                if not best_prs:
+                    ui.label(
+                        "Noch keine PRs erfasst. Trag beim nächsten Workout ein Gewicht ein!"
+                    ).classes("text-gray-500 p-4")
+                else:
+                    columns = [
+                        {"name": "exercise", "label": "Exercise", "field": "exercise", "sortable": True},
+                        {"name": "weight_kg", "label": "Best PR (kg)", "field": "weight_kg", "sortable": True},
+                        {"name": "date", "label": "Date", "field": "date"},
+                    ]
+                    rows = [
+                        {
+                            "exercise": pr["exercise"],
+                            "weight_kg": pr["weight_kg"],
+                            "date": pr["date"].strftime("%d.%m.%Y"),
+                        }
+                        for pr in best_prs
+                    ]
+                    ui.table(columns=columns, rows=rows, row_key="exercise").classes("w-full")

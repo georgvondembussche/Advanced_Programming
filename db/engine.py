@@ -34,6 +34,7 @@ def init_db() -> None:
     from models.muscle_group import MuscleGroup  # noqa: F401
     from models.session_muscle import SessionMuscle  # noqa: F401
     from models.exercise import Exercise  # noqa: F401
+    from models.personal_record import PersonalRecord  # noqa: F401
 
     Base.metadata.create_all(engine)
 

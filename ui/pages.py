@@ -513,10 +513,10 @@ def register_pages(
                     # Right: exercises — fully interactive, each row has checkbox + PR input
                     with ui.element("div").style("width: 50%; overflow-y: auto;"):
                         ui.label("Exercises & PRs (kg)").classes("font-semibold")
-                        with ui.column().classes("gap-3"):
+                        with ui.column().classes("gap-1"):
                             for exercise in all_exercises_list:
                                 with ui.row().classes("gap-2 items-center"):
-                                    cb = ui.checkbox(exercise)
+                                    cb = ui.checkbox(exercise).style("width: 150px;")
                                     pr_input = ui.input(
                                         "PR",
                                         placeholder="kg",

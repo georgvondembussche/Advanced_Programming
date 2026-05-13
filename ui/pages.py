@@ -463,7 +463,7 @@ def register_pages(
         with ui.column().classes("w-full items-center").style(
             "height: 100vh; overflow: hidden; padding: 16px;"
         ):
-            with ui.card().classes("w-full max-w-2xl").style(
+            with ui.card().classes("w-full max-w-4xl").style(
                 "height: 100%; display: flex; flex-direction: column; overflow: hidden;"
             ):
                 # Header
@@ -501,9 +501,9 @@ def register_pages(
                 muscle_checkboxes: list = []
                 exercise_inputs: dict = {}
 
-                with ui.row().classes("gap-8 w-full").style("flex: 1; overflow: hidden;"):
+                with ui.row().classes("gap-8 w-full").style("display: flex; flex-direction: row; flex: 1; min-height: 0;"):
                     # Left: muscles
-                    with ui.column().style("width: 35%; overflow-y: auto; max-height: 100%;"):
+                    with ui.column().style("width: 50%; overflow-y: auto; max-height: 100%;"):
                         ui.label("Muscles trained").classes("font-semibold")
                         with ui.column().classes("gap-1"):
                             for m in all_muscles:
@@ -511,7 +511,7 @@ def register_pages(
                                 muscle_checkboxes.append((m, cb))
 
                     # Right: exercises — fully interactive, each row has checkbox + PR input
-                    with ui.column().style("width: 65%; overflow-y: auto; max-height: 100%;"):
+                    with ui.column().style("width: 50%; overflow-y: auto; max-height: 100%;"):
                         ui.label("Exercises & PRs (kg)").classes("font-semibold")
                         with ui.column().classes("gap-3"):
                             for exercise in all_exercises_list:

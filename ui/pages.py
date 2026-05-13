@@ -501,9 +501,9 @@ def register_pages(
                 muscle_checkboxes: list = []
                 exercise_inputs: dict = {}
 
-                with ui.row().classes("gap-8 w-full").style("display: flex; flex-direction: row; flex: 1; min-height: 0;"):
+                with ui.element("div").style("display: flex; flex-direction: row; gap: 32px; flex: 1; min-height: 0; width: 100%;"):
                     # Left: muscles
-                    with ui.column().style("width: 50%; overflow-y: auto; max-height: 100%;"):
+                    with ui.element("div").style("width: 50%; overflow-y: auto;"):
                         ui.label("Muscles trained").classes("font-semibold")
                         with ui.column().classes("gap-1"):
                             for m in all_muscles:
@@ -511,7 +511,7 @@ def register_pages(
                                 muscle_checkboxes.append((m, cb))
 
                     # Right: exercises — fully interactive, each row has checkbox + PR input
-                    with ui.column().style("width: 50%; overflow-y: auto; max-height: 100%;"):
+                    with ui.element("div").style("width: 50%; overflow-y: auto;"):
                         ui.label("Exercises & PRs (kg)").classes("font-semibold")
                         with ui.column().classes("gap-3"):
                             for exercise in all_exercises_list:

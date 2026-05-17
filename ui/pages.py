@@ -235,17 +235,18 @@ def register_pages(
 
             dialog.open()
 
-        # ── page layout: fixed header + scrollable table area ──────────────
         with ui.column().classes("w-full items-center").style("height: 100vh; overflow: hidden;"):
 
-            # Header / nav card — fixed at top, never scrolls away
             with ui.column().style(
                 "max-width: 1100px; width: 100%; "
                 "background: #262626; border-radius: 20px; "
                 "padding: 20px 30px; margin-top: 20px; "
                 "box-shadow: 0 10px 30px rgba(0,0,0,0.4); flex-shrink: 0;"
             ):
-                ui.label("Dashboard").classes("text-3xl font-bold")
+                user = auth_service.get_user_by_id(user_id)
+                username = user["username"]
+                ui.label(f"Welcome back {username}").classes("text-3xl font-bold")
+                ui.label("Dashboard").classes("text-xl text-gray-400 mt-1")
                 with ui.row().classes("items-center gap-6"):
                     ui.button("New Workout", on_click=lambda: ui.navigate.to("/workout/new"))
                     ui.button("Weekly Summary", on_click=lambda: ui.navigate.to("/week"))
@@ -256,7 +257,6 @@ def register_pages(
                         on_click=lambda: (set_current_user_id(None), ui.navigate.to("/")),
                     ).props("outline")
 
-            # Scrollable area only for the table
             with ui.column().style(
                 "max-width: 1100px; width: 100%; flex: 1; overflow-y: auto; "
                 "padding: 16px 0 16px 0;"

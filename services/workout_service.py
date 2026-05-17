@@ -305,16 +305,76 @@ class WorkoutService:
             records = (
                 session.query(PersonalRecord)
                 .filter(PersonalRecord.user_id == user_id)
-                .order_by(PersonalRecord.exercise_name.asc())
+                .order_by(
+                    PersonalRecord.exercise_name.asc(),
+                    PersonalRecord.weight_kg.desc(),
+                    PersonalRecord.recorded_date.desc(),
+                )
                 .all()
             )
             seen = {}
             for r in records:
-                if r.exercise_name not in seen or r.weight_kg > seen[r.exercise_name]["weight_kg"]:
+                if r.exercise_name not in seen:
                     seen[r.exercise_name] = {
+                        "id": r.id,
                         "exercise": r.exercise_name,
                         "weight_kg": r.weight_kg,
                         "date": r.recorded_date,
                     }
             return list(seen.values())
+
+    def get_pr_by_id(self, pr_id: int, user_id: int) -> dict:
+        from models.personal_record import PersonalRecord
+        with get_session() as session:
+            pr = (
+                session.query(PersonalRecord)
+                .filter(
+                    PersonalRecord.id == pr_id,
+                    PersonalRecord.user_id == user_id,
+                )
+                .first()
+            )
+            if pr is None:
+                raise ValueError("Personal record not found.")
+            return {
+                "id": pr.id,
+                "exercise": pr.exercise_name,
+                "weight_kg": pr.weight_kg,
+                "date": pr.recorded_date,
+            }
+
+    def update_pr(self, pr_id: int, user_id: int, weight_kg: float, recorded_date: date) -> None:
+        if weight_kg <= 0:
+            raise ValueError("Weight must be greater than zero.")
+        with get_session() as session:
+            from models.personal_record import PersonalRecord
+            pr = (
+                session.query(PersonalRecord)
+                .filter(
+                    PersonalRecord.id == pr_id,
+                    PersonalRecord.user_id == user_id,
+                )
+                .first()
+            )
+            if pr is None:
+                raise ValueError("Personal record not found.")
+            pr.weight_kg = weight_kg
+            pr.recorded_date = recorded_date
+            session.commit()
+
+    def delete_pr(self, pr_id: int, user_id: int) -> None:
+        with get_session() as session:
+            from models.personal_record import PersonalRecord
+            pr = (
+                session.query(PersonalRecord)
+                .filter(
+                    PersonalRecord.id == pr_id,
+                    PersonalRecord.user_id == user_id,
+                )
+                .first()
+            )
+            if pr is None:
+                raise ValueError("Personal record not found.")
+            session.delete(pr)
+            session.commit()
     

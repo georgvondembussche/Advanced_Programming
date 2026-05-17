@@ -83,6 +83,62 @@ def register_pages(
     </style>
     """
 
+    def show_add_exercise_dialog(user_id: int):
+        with ui.dialog() as dialog, ui.card().classes("p-6 w-full max-w-md"):
+            ui.label("Exercises").classes("text-xl font-bold")
+
+            exercise_list = ui.column().classes("gap-2 mb-4 border p-3 rounded")
+
+            def refresh_exercise_list():
+                exercise_list.clear()
+                exercises = workout_service.list_exercises(user_id=user_id)
+                with exercise_list:
+                    if not exercises:
+                        ui.label("No custom exercises yet.").classes("text-gray-500")
+                    else:
+                        for exercise in exercises:
+                            with ui.row().classes("justify-between items-center w-full"):
+                                ui.label(exercise["name"])
+                                ui.button(
+                                    icon="delete",
+                                    on_click=lambda ex_id=exercise["id"]: delete_exercise(ex_id),
+                                ).props("flat color=negative size=sm")
+
+            def delete_exercise(ex_id):
+                try:
+                    workout_service.delete_exercise(ex_id, user_id)
+                    ui.notify("Exercise deleted!", type="positive")
+                    dialog.close()
+                    ui.navigate.to("/workout/new")
+                except ValueError as e:
+                    ui.notify(str(e), type="negative")
+            refresh_exercise_list()
+
+            ui.label("Add New Exercise").classes("text-md font-semibold mt-4")
+            exercise_name = ui.input("Exercise Name").classes("w-full")
+
+            def add_exercise():
+                try:
+                    if not exercise_name.value or not exercise_name.value.strip():
+                        ui.notify("Exercise name cannot be empty.", type="warning")
+                        return
+                    workout_service.create_exercise(
+                        user_id=user_id,
+                        name=exercise_name.value.strip(),
+                    )
+                    ui.notify("Exercise added!", type="positive")
+                    exercise_name.value = ""
+                    dialog.close()
+                    ui.navigate.to("/workout/new")
+                except ValueError as e:
+                    ui.notify(str(e), type="negative")
+
+            with ui.row().classes("w-full justify-end gap-2"):
+                ui.button("Close", on_click=dialog.close).props("outline")
+                ui.button("Add", on_click=add_exercise)
+
+        dialog.open()
+
     @ui.page("/")
     def login_page():
         ui.dark_mode().enable()
@@ -180,61 +236,6 @@ def register_pages(
         ui.add_head_html(FULL_PAGE_STYLE)
         user_id = require_login()
 
-        def show_add_exercise_dialog():
-            with ui.dialog() as dialog, ui.card().classes("p-6 w-full max-w-md"):
-                ui.label("Exercises").classes("text-xl font-bold")
-
-                exercise_list = ui.column().classes("gap-2 mb-4 border p-3 rounded")
-
-                def refresh_exercise_list():
-                    exercise_list.clear()
-                    exercises = workout_service.list_exercises(user_id=user_id)
-                    with exercise_list:
-                        if not exercises:
-                            ui.label("No custom exercises yet.").classes("text-gray-500")
-                        else:
-                            for exercise in exercises:
-                                with ui.row().classes("justify-between items-center w-full"):
-                                    ui.label(exercise["name"])
-                                    ui.button(
-                                        icon="delete",
-                                        on_click=lambda ex_id=exercise["id"]: delete_exercise(ex_id),
-                                    ).props("flat color=negative size=sm")
-
-                def delete_exercise(ex_id):
-                    try:
-                        workout_service.delete_exercise(ex_id, user_id)
-                        ui.notify("Exercise deleted!", type="positive")
-                        refresh_exercise_list()
-                    except ValueError as e:
-                        ui.notify(str(e), type="negative")
-
-                refresh_exercise_list()
-
-                ui.label("Add New Exercise").classes("text-md font-semibold mt-4")
-                exercise_name = ui.input("Exercise Name").classes("w-full")
-
-                def add_exercise():
-                    try:
-                        if not exercise_name.value or not exercise_name.value.strip():
-                            ui.notify("Exercise name cannot be empty.", type="warning")
-                            return
-                        workout_service.create_exercise(
-                            user_id=user_id,
-                            name=exercise_name.value.strip(),
-                        )
-                        ui.notify("Exercise added!", type="positive")
-                        exercise_name.value = ""
-                        refresh_exercise_list()
-                    except ValueError as e:
-                        ui.notify(str(e), type="negative")
-
-                with ui.row().classes("w-full justify-end gap-2"):
-                    ui.button("Close", on_click=dialog.close).props("outline")
-                    ui.button("Add", on_click=add_exercise)
-
-            dialog.open()
-
         with ui.column().classes("w-full items-center").style("height: 100vh; overflow: hidden;"):
 
             with ui.column().style(
@@ -250,7 +251,6 @@ def register_pages(
                 with ui.row().classes("items-center gap-6"):
                     ui.button("New Workout", on_click=lambda: ui.navigate.to("/workout/new"))
                     ui.button("Weekly Summary", on_click=lambda: ui.navigate.to("/week"))
-                    ui.button("Exercises", on_click=show_add_exercise_dialog)
                     ui.button("PR Tracker", on_click=lambda: ui.navigate.to("/pr-tracker"))
                     ui.button(
                         "Logout",
@@ -351,7 +351,6 @@ def register_pages(
         exercise_inputs: dict = {}
 
         with ui.row().classes("gap-8 w-full").style("overflow-y: auto; flex: 1;"):
-            # Muscles column — scrollable if many
             with ui.column().style("width: 35%; overflow-y: auto; max-height: 55vh;"):
                 ui.label("Muscles trained").classes("font-semibold")
                 with ui.column().classes("gap-1"):
@@ -359,9 +358,8 @@ def register_pages(
                         cb = ui.checkbox(m["name"], value=(m["id"] in selected_muscle_ids))
                         checkboxes.append((m, cb))
 
-            # Exercises column — scrollable if many
             with ui.column().style("width: 65%; overflow-y: auto; max-height: 55vh;"):
-                ui.label("Exercises & PRs (kg)").classes("font-semibold")
+                ui.label("Exercises and PRs (kg)").classes("font-semibold")
                 with ui.column().classes("gap-3"):
                     for exercise in all_exercises_list:
                         with ui.row().classes("gap-2 items-center"):
@@ -391,14 +389,12 @@ def register_pages(
             user_id=user_id,
         )
 
-        # ── fixed-height page, nothing overflows the viewport ──────────────
         with ui.column().classes("w-full items-center").style(
             "height: 100vh; overflow: hidden; padding: 16px;"
         ):
             with ui.card().classes("w-full max-w-2xl").style(
                 "height: 100%; display: flex; flex-direction: column; overflow: hidden;"
             ):
-                # Header — never scrolls away
                 with ui.row().classes("items-center justify-between w-full").style("flex-shrink: 0;"):
                     ui.label("Edit Workout").classes("text-2xl font-bold")
                     with ui.row().classes("gap-2"):
@@ -406,7 +402,6 @@ def register_pages(
 
                 ui.separator().style("flex-shrink: 0;")
 
-                # Scrollable form body
                 with ui.column().style("flex: 1; overflow-y: auto; padding: 8px 0;"):
                     workout_date, notes, checkboxes, exercise_inputs = _build_workout_form(
                         user_id=user_id,
@@ -414,10 +409,8 @@ def register_pages(
                         notes_value=session_data["notes"] or "",
                         selected_muscle_ids=set(session_data["muscle_ids"]),
                     )
-                    # Override date to session date
                     workout_date.value = session_data["date"].isoformat()
 
-                # Footer buttons — pinned at bottom
                 ui.separator().style("flex-shrink: 0;")
                 with ui.row().classes("gap-2 justify-end").style("flex-shrink: 0; padding-top: 8px;"):
                     def save():
@@ -426,15 +419,29 @@ def register_pages(
                             ui.notify("Select at least one muscle group.", type="warning")
                             return
                         try:
+                            workout_date_value = date.fromisoformat(
+                                str(workout_date.value).replace("/", "-")
+                            )
                             workout_service.update_session(
                                 session_id=session_id,
                                 user_id=user_id,
-                                workout_date=date.fromisoformat(
-                                    str(workout_date.value).replace("/", "-")
-                                ),
+                                workout_date=workout_date_value,
                                 notes=notes.value,
                                 muscle_ids=new_muscle_ids,
                             )
+                            for exercise_name, (cb, pr_input) in exercise_inputs.items():
+                                if cb.value and pr_input.value:
+                                    try:
+                                        weight = float(pr_input.value)
+                                        if weight > 0:
+                                            workout_service.save_pr(
+                                                user_id=user_id,
+                                                exercise_name=exercise_name,
+                                                weight_kg=weight,
+                                                recorded_date=workout_date_value,
+                                            )
+                                    except ValueError:
+                                        pass
                             ui.notify("Workout updated!", type="positive")
                             ui.navigate.to("/dashboard")
                         except ValueError as e:
@@ -466,11 +473,9 @@ def register_pages(
             with ui.card().classes("w-full max-w-4xl").style(
                 "height: 100%; display: flex; flex-direction: column; overflow: hidden;"
             ):
-                # Header
                 ui.label("New Workout").classes("text-2xl font-bold").style("flex-shrink: 0;")
                 ui.separator().style("flex-shrink: 0;")
 
-                # Template loader — always visible, never scrolls away
                 with ui.column().style("flex-shrink: 0; padding-bottom: 8px;"):
                     def load_template(e):
                         if not e.value:
@@ -497,12 +502,11 @@ def register_pages(
                     "flex-shrink: 0; max-height: 80px; overflow-y: auto;"
                 )
 
-                # Scrollable two-column form
                 muscle_checkboxes: list = []
                 exercise_inputs: dict = {}
 
                 with ui.element("div").style("display: flex; flex-direction: row; gap: 32px; flex: 1; min-height: 0; width: 100%;"):
-                    # Left: muscles
+                    # Left side config
                     with ui.element("div").style("width: 50%; overflow-y: auto;"):
                         ui.label("Muscles trained").classes("font-semibold")
                         with ui.column().classes("gap-1"):
@@ -510,8 +514,9 @@ def register_pages(
                                 cb = ui.checkbox(m["name"])
                                 muscle_checkboxes.append((m, cb))
 
-                    # Right: exercises — fully interactive, each row has checkbox + PR input
+                    # Right side config
                     with ui.element("div").style("width: 50%; overflow-y: auto;"):
+                        ui.button("Edit Exercises", on_click=lambda: show_add_exercise_dialog(user_id)).classes("mb-3")
                         ui.label("Exercises & PRs (kg)").classes("font-semibold")
                         with ui.column().classes("gap-1"):
                             for exercise in all_exercises_list:
@@ -529,7 +534,6 @@ def register_pages(
                                     ).props("type=number").style("width: 100px")
                                     exercise_inputs[exercise] = (cb, pr_input)
 
-                # Footer — always visible
                 ui.separator().style("flex-shrink: 0;")
                 with ui.row().classes("gap-2 justify-end").style("flex-shrink: 0; padding-top: 8px;"):
                     def save():
@@ -547,7 +551,7 @@ def register_pages(
                                 notes=notes_widget.value,
                                 muscle_ids=selected_ids,
                             )
-                            # PRs speichern
+                            # PRs save
                             for exercise_name, (cb, pr_input) in exercise_inputs.items():
                                 if cb.value and pr_input.value:
                                     try:
@@ -712,13 +716,89 @@ def register_pages(
                         {"name": "exercise", "label": "Exercise", "field": "exercise", "sortable": True},
                         {"name": "weight_kg", "label": "Best PR (kg)", "field": "weight_kg", "sortable": True},
                         {"name": "date", "label": "Date", "field": "date"},
+                        {"name": "actions", "label": "Actions", "field": "actions"},
                     ]
                     rows = [
                         {
+                            "id": pr["id"],
                             "exercise": pr["exercise"],
                             "weight_kg": pr["weight_kg"],
                             "date": pr["date"].strftime("%d.%m.%Y"),
+                            "date_iso": pr["date"].isoformat(),
                         }
                         for pr in best_prs
                     ]
-                    ui.table(columns=columns, rows=rows, row_key="exercise").classes("w-full")
+                    table = ui.table(columns=columns, rows=rows, row_key="id").classes("w-full")
+
+                    def edit_pr(ev):
+                        row = ev.args
+
+                        with ui.dialog() as dialog, ui.card().classes("p-6 w-full max-w-sm"):
+                            ui.label(f"Edit PR - {row['exercise']}").classes("text-xl font-bold")
+                            ui.separator()
+                            weight_input = ui.input(
+                                "Weight (kg)",
+                                value=str(row["weight_kg"]),
+                                placeholder="Enter new weight",
+                            ).props("type=number")
+                            date_input = ui.input(
+                                "Recorded Date",
+                                value=row["date_iso"],
+                            ).props("type=date")
+
+                            def save_pr_edit():
+                                try:
+                                    workout_service.update_pr(
+                                        pr_id=row["id"],
+                                        user_id=user_id,
+                                        weight_kg=float(weight_input.value),
+                                        recorded_date=date.fromisoformat(
+                                            str(date_input.value).replace("/", "-")
+                                        ),
+                                    )
+                                    ui.notify("PR updated!", type="positive")
+                                    dialog.close()
+                                    ui.navigate.to("/pr-tracker")
+                                except ValueError as e:
+                                    ui.notify(str(e), type="negative")
+
+                            with ui.row().classes("justify-end gap-2"):
+                                ui.button("Cancel", on_click=dialog.close).props("outline")
+                                ui.button("Save", on_click=save_pr_edit)
+
+                        dialog.open()
+
+                    table.on("edit_pr", edit_pr)
+                    def delete_pr(ev):
+                        row = ev.args
+                        with ui.dialog() as dialog, ui.card().classes("p-4"):
+                            ui.label(f"Delete {row['exercise']} PR?").classes("text-lg font-semibold")
+                            ui.label("This action cannot be undone.").classes("text-sm text-gray-500")
+                            with ui.row().classes("w-full justify-end gap-2"):
+                                ui.button("Cancel", on_click=dialog.close).props("flat")
+                                ui.button(
+                                    "Delete",
+                                    color="negative",
+                                    on_click=lambda: execute_pr_deletion(row["id"], dialog),
+                                )
+                        dialog.open()
+
+                    def execute_pr_deletion(pr_id: int, dialog):
+                        try:
+                            workout_service.delete_pr(pr_id=pr_id, user_id=user_id)
+                            ui.notify("PR deleted", type="positive")
+                            dialog.close()
+                            ui.navigate.to("/pr-tracker")
+                        except ValueError as e:
+                            ui.notify(str(e), type="negative")
+
+                    table.on("delete_pr", delete_pr)
+                    table.add_slot(
+                        "body-cell-actions",
+                        """
+                        <q-td :props="props">
+                            <q-btn dense flat icon="edit" @click="$parent.$emit('edit_pr', props.row)" />
+                            <q-btn dense flat icon="delete" @click="$parent.$emit('delete_pr', props.row)" />
+                        </q-td>
+                        """,
+                    )
